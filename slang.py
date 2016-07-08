@@ -5,12 +5,14 @@
 # stms ::= LAMBDA
 #		 | ( stm ) stms
 # stm  ::= var ( exp )
-#		 | def var ( arr ) ( stms )
+#		 | def var ( farr ) ( stms )
 #		 | return ( exp )
 #		 | if ( lExp ) ( stms ) ( stms )
 #		 | while ( lExp ) ( stms )
 #		 | for ( var in arr ) ( stms )
 #		 | for ( var in var ) ( stms )
+# farr ::= LAMBDA
+#		 | var farr
 # exp  ::= prim
 #		 | fExp
 #		 | aExp
@@ -69,16 +71,65 @@ prog1 = '( ( = x ( 5 ) )\
 
 prog2 = '( ( print ( == ( ! ( 2 ) ) ( ! ( 1 ) ) ) ) )'
 
+prog3 = '((def fn(x y z) ((=var "this is a tokenizing stress test!!!\
+		 					123 ABC !@#$%^&*()=")\
+		 					(print var))))'
+
+# Globals
+ws = ' \t\b\n'
+digits = '0123456789'
+letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
+
 # Return a list of tokens for the given program string.
 def tokenize(p):
-	words = p.split()
 	tokens = []
-	for word in words:
-		try:
-			tokens.append(int(word))
-		except ValueError:
-			tokens.append(word)
+	i = 0
+	while i < len(p):
+		c1 = p[i]
+		c2 = p[i+1] if i+1 < len(p) else None
+		if c1 in ws:
+			i += 1
+		elif c1 in '()!><+*/':
+			tokens.append(c1)
+			i += 1
+		elif c1 == '=' and c2 != '=' or c1 == '-' and c2 not in digits:
+			tokens.append(c1)
+			i += 1
+		elif c1+c2 == '&&' or c1+c2 == '||' or c1+c2 == '==':
+			tokens.append(c1+c2)
+			i += 2
+		elif c1 in letters:
+			word_start = i
+			word_end = i + 1
+			while p[word_end] in letters:
+				word_end += 1
+			tokens.append(p[word_start:word_end])
+			i = word_end
+		elif c1 == '-' or c1 in digits:
+			num_start = i
+			num_end = i + 1
+			while p[num_end] in digits:
+				num_end += 1
+			tokens.append(int(p[num_start:num_end]))
+			i = num_end
+		elif c1 == '"':
+			str_start = i + 1
+			str_end = str_start
+			while p[str_end] != '"':
+				str_end += 1
+			# TODO: somehow denote string type
+			tokens.append(p[str_start:str_end])
+			i = str_end + 1
 	return tokens
+
+	# words = p.split()
+	# tokens = []
+	# for word in words:
+	# 	try:
+	# 		tokens.append(int(word))
+	# 	except ValueError:
+	# 		tokens.append(word)
+	# return tokens
 
 # Return a list representing the program statements.
 def lex(tokens):
