@@ -15,5 +15,5 @@
 			( return ( * x x ) )
 		)
 	)
-	( print( ( map( square ( range(0,10) ) ) ) ) )
+	(print((map(square, (range(0,10))))))
 )

@@ -1,5 +1,9 @@
+#!/usr/bin/python
+
 # StupidLang (aka Slang)									Jason Kim, 7/7/2016
-# A stupid Python-interpreted programming language.
+# A stupid Python-interpreted, dynamically-typed, imperative programming
+# language, featuring first-class functions, multitype arrays, and horrific
+# syntax.
 
 # Language specification:
 # prog ::= ( stms )
@@ -64,37 +68,10 @@
 # To-do:
 # - other useful built-in functions
 # - either support or disallow nested functions
-# - make parethesization more optional/flexible
+# - make parethesization more optional/flexible (make arg lists comma-separated, remove parens around program)
 # - make binary operators infix
 
 from collections import deque
-
-# Test code
-
-prog0 = '(( print (( == (3) (3) )) ))'
-
-prog1 = '( ( = x ( 5 ) )\
-		   ( = y ( 3 ) )\
-		   ( if ( > ( x ) ( y ) )\
-		     ( ( print ( ( x ) ) ) )\
-		     ( ( print ( ( y ) ) ) ) ) )'
-
-prog2 = '( ( print ( ( == ( ! ( 2 ) ) ( ! ( 1 ) ) ) ) ) )'
-
-prog3 = '((def fn(x,y,z) ((=var "this is a tokenizing stress test!!!\
-		 					123 ABC !@#$%^&*()=")\
-		 				  (print ((var)))\
-		 				  (=arr { 1, 2, 3 }))))\
-		  (fn(1,2,3))))'
-
-prog4 = '( (def f(x) ((> (x) (1)))) (print ( ( f((2)) ) ) ) )'
-
-prog5 = open('prog5.slang', 'r').read()
-prog6 = open('countdown.slang', 'r').read()
-prog7 = open('fib.slang', 'r').read()
-prog8 = open('while.slang', 'r').read()
-prog9 = open('array.slang', 'r').read()
-prog10 = open('map.slang', 'r').read()
 
 # Globals
 
@@ -104,7 +81,7 @@ letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
 
 # Types
 
-class number:
+class number(object):
 
 	def __init__(self, value):
 		self.value = value
@@ -112,7 +89,7 @@ class number:
 	def __repr__(self):
 		return 'number(%d)' % (self.value)
 
-class string:
+class string(object):
 
 	def __init__(self, value):
 		self.value = value
@@ -120,7 +97,7 @@ class string:
 	def __repr__(self):
 		return 'string("%s")' % (self.value)
 
-class array:
+class array(object):
 
 	def __init__(self, value):
 		self.value = value
@@ -128,7 +105,7 @@ class array:
 	def __repr__(self):
 		return 'array(%s)' % (str(self.value))
 
-class func:
+class func(object):
 
 	def __init__(self, name, args, body):
 		self.name = name
@@ -138,7 +115,7 @@ class func:
 	def __repr__(self):
 		return 'func(%s)' % (str(self.name))
 
-class built_in_func:
+class built_in_func(object):
 
 	def __init__(self, value):
 		self.value = value
@@ -172,7 +149,7 @@ def find(envs, name):
 	for env in envs[::-1]:
 		if name in env:
 			return env[name]
-	raise NameError('Name "' + name + '" is not defined.')
+	raise NameError('Name "' + str(name) + '" is not defined.')
 
 # Bind the variable name to the given value. If the variable is defined in an
 # environment, reassign its value. Otherwise, create a new binding in the local
@@ -292,6 +269,7 @@ def parse(tokens):
 # Return the value of the expression.
 def evaluate(envs, exp):
 	# print('evaluating expression ' + str(exp))
+	# print(str(type(exp)))
 	if type(exp) != list:					# Primitive
 		if type(exp) in [number, string, array]:
 			return exp
@@ -406,3 +384,9 @@ def interpret(p):
 	envs = [global_env]			# Create environment stack
 	# print(stms)
 	execute(envs, stms)			# Execute
+
+# Run Slang as a script.
+if __name__ == "__main__":
+    from sys import argv
+    script = open(argv[-1], 'r').read()
+    interpret(script)
