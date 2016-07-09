@@ -59,12 +59,13 @@
 # - Functions without a return value return the value of the last statement.
 # - Expressions with more than one term must be wrapped by parentheses.
 # - For loops work like Python for loops, iterating over an array.
-# - Built-in functions include: print, range.
+# - Built-in functions include: print, range, size, array.
 
 # To-do:
-# - arrays (assignment, access)
 # - other useful built-in functions
-# - functional features?
+# - either support or disallow nested functions
+# - make parethesization more optional/flexible
+# - make binary operators infix
 
 from collections import deque
 
@@ -83,7 +84,7 @@ prog2 = '( ( print ( ( == ( ! ( 2 ) ) ( ! ( 1 ) ) ) ) ) )'
 prog3 = '((def fn(x,y,z) ((=var "this is a tokenizing stress test!!!\
 		 					123 ABC !@#$%^&*()=")\
 		 				  (print ((var)))\
-		 				  (=arr([1, 2, 3]))))\
+		 				  (=arr { 1, 2, 3 }))))\
 		  (fn(1,2,3))))'
 
 prog4 = '( (def f(x) ((> (x) (1)))) (print ( ( f((2)) ) ) ) )'
