@@ -50,6 +50,7 @@
 #		 | <
 
 # Language notes:
+# - Comments run from # to the end of the line.
 # - Only 0, "", and [] are falsy.
 # - Functions without a return value return the value of the last statement.
 # - Expressions with more than one term must be wrapped by parentheses.
@@ -92,6 +93,7 @@ prog3 = '((def fn(x,y,z) ((=var "this is a tokenizing stress test!!!\
 prog4 = '( (def f(x) ((> (x) (1)))) (print ( ( f((2)) ) ) ) )'
 
 prog5 = open('prog5.slang', 'r').read()
+prog6 = open('countdown.slang', 'r').read()
 
 # Globals
 
@@ -192,6 +194,7 @@ def call(envs, f, args):
 	elif type(f) != func:
 		raise TypeError('Value ' + str(f) + ' is not a function.')
 	fenv = { farg: arg for (farg, arg) in zip(f.args, args) }
+	# print(fenv)
 	envs.append(fenv)
 	res = execute(envs, f.body)
 	envs.pop()
@@ -206,6 +209,9 @@ def tokenize(p):
 		c2 = p[i+1] if i+1 < len(p) else None
 		if c1 in ws or c1 == ',':
 			i += 1
+		elif c1 == '#':
+			while p[i] != '\n':
+				i += 1
 		elif c1 in '()[]!><+*/':
 			tokens.append(c1)
 			i += 1
@@ -287,9 +293,8 @@ def evaluate(envs, exp):
 	elif exp[0] == '!':
 		return number(int(bool(unwrap(evaluate(envs, exp[1])))))
 	elif len(exp) == 2:						# Function expression
-		# print('function call on args ' + str(exp[1]))
 		args = [evaluate(envs, arg) for arg in exp[1]]
-		# print('args ' + str(args))
+		# print('calling ' + str(exp[0]) + ' on args ' + str(args))
 		return call(envs, find(envs, exp[0]), args)
 	else:
 		if exp[0] == '==':
@@ -301,7 +306,7 @@ def evaluate(envs, exp):
 		elif exp[0] in '><+':
 			val1 = evaluate(envs, exp[1])
 			val2 = evaluate(envs, exp[2])
-			if type(val1) != type(val2) or type(val1) not in [number, string]:
+			if exp[0] != '+' and type(val1) != type(val2) or type(val1) not in [number, string]:
 				raise TypeError('Values ' + str(val1) + ' and ' + str(val2) + ' are not comparable.')
 			if exp[0] == '>':
 				return number(int(unwrap(val1) > unwrap(val2)))
@@ -310,7 +315,7 @@ def evaluate(envs, exp):
 			elif type(val1) == number:
 				return number(unwrap(val1) + unwrap(val2))
 			else:
-				return string(unwrap(val1) + unwrap(val2))
+				return string(str(unwrap(val1)) + str(unwrap(val2)))
 		elif exp[0] in '-*/':
 			val1 = evaluate(envs, exp[1])
 			val2 = evaluate(envs, exp[2])
@@ -334,14 +339,16 @@ def execute(envs, stms):
 	for stm in stms:
 		if not len(stm):
 			continue
-		if stm[0] == '=':		# Assignment
+		elif stm[0] == 'return':	# Return
+			return number(0) if len(stm) == 1 else evaluate(envs, stm[1])
+		elif stm[0] == '=':			# Assignment
 			res = bind(envs, stm[1], evaluate(envs, stm[2]))
-		elif stm[0] == 'if':	# If
-			if bool(evaluate(envs, stm[1])):
+		elif stm[0] == 'if':		# If
+			if bool(unwrap(evaluate(envs, stm[1]))):
 				res = execute(envs, stm[2])
 			else:
 				res = execute(envs, stm[3])
-		elif stm[0] == 'for':	# For
+		elif stm[0] == 'for':		# For
 			index = stm[1][0]
 			values = evaluate(envs, stm[1][2])
 			envs.append(dict())
@@ -349,9 +356,9 @@ def execute(envs, stms):
 				envs[-1][index] = i
 				res = execute(envs, stm[2])
 			envs.pop()
-		elif stm[0] == 'def':	# Function definition
+		elif stm[0] == 'def':		# Function definition
 			res = bind(envs, stm[1], func(stm[1], stm[2], stm[3]))
-		else:					# Function
+		else:						# Function
 			res = evaluate(envs, stm)
 	return res
 
