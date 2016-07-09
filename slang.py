@@ -341,6 +341,14 @@ def execute(envs, stms):
 				res = execute(envs, stm[2])
 			else:
 				res = execute(envs, stm[3])
+		elif stm[0] == 'for':	# For
+			index = stm[1][0]
+			values = evaluate(envs, stm[1][2])
+			envs.append(dict())
+			for i in values.value:
+				envs[-1][index] = i
+				res = execute(envs, stm[2])
+			envs.pop()
 		elif stm[0] == 'def':	# Function definition
 			res = bind(envs, stm[1], func(stm[1], stm[2], stm[3]))
 		else:					# Function

@@ -6,4 +6,8 @@
 	( print (x) )
 	( = x ( range(1,4) ) )
 	( print (x) )
+	( for ( i in ( range(0,10) ) )
+			(
+				( print(i) )
+			) )
 )
