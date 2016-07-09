@@ -94,6 +94,7 @@ prog4 = '( (def f(x) ((> (x) (1)))) (print ( ( f((2)) ) ) ) )'
 
 prog5 = open('prog5.slang', 'r').read()
 prog6 = open('countdown.slang', 'r').read()
+prog7 = open('fib.slang', 'r').read()
 
 # Globals
 
