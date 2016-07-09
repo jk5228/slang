@@ -90,6 +90,8 @@ prog3 = '((def fn(x,y,z) ((=var "this is a tokenizing stress test!!!\
 
 prog4 = '( (def f(x) ((> (x) (1)))) (print ( ( f((2)) ) ) ) )'
 
+prog5 = open('prog5.slang', 'r').read()
+
 # Globals
 
 ws = ' \t\b\n'
@@ -274,14 +276,19 @@ def parse(tokens):
 # Return the value of the expression.
 def evaluate(envs, exp):
 	print('evaluating expression ' + str(exp))
-	if len(exp) == 1:			# Primitive
+	if type(exp) not in [list, deque]:		# Primitive
+		if type(exp) in [number, string, array]:
+			return exp
+		else:
+			return find(envs, exp)
+	elif len(exp) == 1:						# Primitive
 		if type(exp[0]) in [number, string, array]:
 			return exp[0]
 		else:
 			return find(envs, exp[0])
 	elif exp[0] == '!':
 		return number(int(bool(unwrap(evaluate(envs, exp[1])))))
-	elif len(exp) == 2:			# Function expression
+	elif len(exp) == 2:						# Function expression
 		print('function call on args ' + str(exp[1]))
 		args = [evaluate(envs, arg) for arg in exp[1]]
 		print('args ' + str(args))
@@ -293,15 +300,35 @@ def evaluate(envs, exp):
 			return number(int(unwrap(evaluate(envs, exp[1])) and unwrap(evaluate(envs, exp[2]))))
 		elif exp[0] == '||':
 			return number(int(unwrap(evaluate(envs, exp[1])) or unwrap(evaluate(envs, exp[2]))))
-		elif exp[0] in '><':
+		elif exp[0] in '><+':
 			val1 = evaluate(envs, exp[1])
 			val2 = evaluate(envs, exp[2])
 			if type(val1) != type(val2) or type(val1) not in [number, string]:
 				raise TypeError('Values ' + str(val1) + ' and ' + str(val2) + ' are not comparable.')
 			if exp[0] == '>':
 				return number(int(unwrap(val1) > unwrap(val2)))
-			else:
+			elif exp[0] == '<':
 				return number(int(unwrap(val1) < unwrap(val2)))
+			elif type(val1) == number:
+				return number(unwrap(val1) + unwrap(val2))
+			else:
+				return string(unwrap(val1) + unwrap(val2))
+		elif exp[0] in '-*/':
+			val1 = evaluate(envs, exp[1])
+			val2 = evaluate(envs, exp[2])
+			if type(val1) != type(val2) or type(val1) != number:
+				raise TypeError('Values ' + str(val1) + ' and ' + str(val2) + ' invalid for arithmetic operator.')
+			if exp[0] == '-':
+				return number(unwrap(val1) - unwrap(val2))
+			elif exp[0] == '*':
+				return number(unwrap(val1) * unwrap(val2))
+			elif exp[0] == '/' and unwrap(val2) != 0:
+				return number(unwrap(val1) * unwrap(val2))
+			else:
+				raise ArithmeticError('Cannot divide by 0.')
+		else:
+			raise SyntaxError('Cannot evaluate expression "' + str(exp) + '".')
+
 
 # Execute the statements in the given list.
 def execute(envs, stms):
