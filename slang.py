@@ -52,6 +52,7 @@
 # Language notes:
 # - Only 0, "", and [] are falsy.
 # - Functions without a return value return the value of the last statement.
+# - Expressions with more than one term must be wrapped by parentheses.
 # - For loops work like Python for loops, iterating over an array.
 # - Built-in functions include: print, range.
 
@@ -146,18 +147,15 @@ class built_in_func:
 
 # Print the given value.
 def s_print(value):
-	if type(value) == number or type(value) == string or type(value) == array:
-		print(str(value.value))
-	else:
-		print(str(value))
+	print(str(value))
 
 # Return the array of integers in the interval [lo, hi).
 def s_range(lo, hi):
-	return array(list(range(lo, hi)))
+	return array([number(i) for i in range(lo, hi)])
 
 # Return the size of the array.
 def s_size(arr):
-	return len(arr.value)
+	return len(arr)
 
 # Slang core
 
@@ -186,10 +184,10 @@ def unwrap(prim):
 
 # Return the evaluation of the given function on its arguments.
 def call(envs, f, args):
-	print('calling ' + str(f))
+	# print('calling ' + str(f))
 	if type(f) == built_in_func:
-		print('built-in')
-		print('args ' + str(args))
+		# print('built-in')
+		# print('args ' + str(args))
 		return f.value(*[unwrap(arg) for arg in args])
 	elif type(f) != func:
 		raise TypeError('Value ' + str(f) + ' is not a function.')
@@ -259,7 +257,7 @@ def parse(tokens):
 				# print('adding ' + str(item) + ' to lst')
 				lst.appendleft(item)
 			stack.pop()
-			stack.append(lst)
+			stack.append(list(lst))
 		elif token == ']':
 			# print('close paren')
 			lst = deque()
@@ -268,15 +266,15 @@ def parse(tokens):
 				# print('adding ' + str(item) + ' to lst')
 				lst.appendleft(item)
 			stack.pop()
-			stack.append(array(lst))
+			stack.append(array(list(lst)))
 		else:
 			stack.append(token)
 	return stack.pop()
 
 # Return the value of the expression.
 def evaluate(envs, exp):
-	print('evaluating expression ' + str(exp))
-	if type(exp) not in [list, deque]:		# Primitive
+	# print('evaluating expression ' + str(exp))
+	if type(exp) != list:					# Primitive
 		if type(exp) in [number, string, array]:
 			return exp
 		else:
@@ -289,9 +287,9 @@ def evaluate(envs, exp):
 	elif exp[0] == '!':
 		return number(int(bool(unwrap(evaluate(envs, exp[1])))))
 	elif len(exp) == 2:						# Function expression
-		print('function call on args ' + str(exp[1]))
+		# print('function call on args ' + str(exp[1]))
 		args = [evaluate(envs, arg) for arg in exp[1]]
-		print('args ' + str(args))
+		# print('args ' + str(args))
 		return call(envs, find(envs, exp[0]), args)
 	else:
 		if exp[0] == '==':
@@ -323,7 +321,7 @@ def evaluate(envs, exp):
 			elif exp[0] == '*':
 				return number(unwrap(val1) * unwrap(val2))
 			elif exp[0] == '/' and unwrap(val2) != 0:
-				return number(unwrap(val1) * unwrap(val2))
+				return number(unwrap(val1) / unwrap(val2))
 			else:
 				raise ArithmeticError('Cannot divide by 0.')
 		else:
@@ -339,19 +337,13 @@ def execute(envs, stms):
 		if stm[0] == '=':		# Assignment
 			res = bind(envs, stm[1], evaluate(envs, stm[2]))
 		elif stm[0] == 'if':	# If
-			print('if')
 			if bool(evaluate(envs, stm[1])):
-				print('if true')
 				res = execute(envs, stm[2])
 			else:
-				print('if false')
 				res = execute(envs, stm[3])
 		elif stm[0] == 'def':	# Function definition
-			print('function definition')
 			res = bind(envs, stm[1], func(stm[1], stm[2], stm[3]))
 		else:					# Function
-			print('function expression')
-			print(stm)
 			res = evaluate(envs, stm)
 	return res
 
@@ -364,4 +356,5 @@ def interpret(p):
 		'range': built_in_func(s_range)
 	}
 	envs = [global_env]			# Create environment stack
+	# print(stms)
 	execute(envs, stms)			# Execute
