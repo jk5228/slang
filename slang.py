@@ -6,31 +6,35 @@
 # stms ::= LAMBDA
 #		 | ( stm ) stms
 # stm  ::= fExp
+#		 | = var ( exp )
+#		 | = ( var [ exp ] ) ( exp )
 #		 | def var ( farr ) ( stms )
 #		 | return
 #		 | return ( exp )
 #		 | if ( lExp ) ( stms ) ( stms )
 #		 | while ( lExp ) ( stms )
-#		 | for ( var in [ arr ] ) ( stms )
+#		 | for ( var in { arr } ) ( stms )
 #		 | for ( var in var ) ( stms )
 #		 | for ( var in fExp ) ( stms )
 # farr ::= LAMBDA
 #		 | var , farr
 #		 | var farr
 # exp  ::= prim
+#		 | aGet
 #		 | fExp
 #		 | aExp
 #		 | lExp
 # prim ::= num
 #		 | str
 #		 | var
-#		 | [ arr ]
+#		 | { arr }
 # num  ::= -?\d+
 # str  ::= "[^"]*"
 # var  ::= [A-Za-z]+
 # arr  ::= LAMBDA
 #		 | ( exp ) , arr
 #		 | ( exp ) arr
+# aGet ::= var [ exp ]
 # fExp ::= var ( parr )
 # parr ::= LAMBDA
 #		 | ( exp ) , parr
@@ -58,17 +62,9 @@
 # - Built-in functions include: print, range.
 
 # To-do:
-# - arithmetic
-# - strings
-# - run-time type-checking
-# - functions
-# - for
-# - while
-# - local environments
 # - arrays (assignment, access)
 # - other useful built-in functions
 # - functional features?
-# - load programs from files
 
 from collections import deque
 
@@ -96,6 +92,8 @@ prog5 = open('prog5.slang', 'r').read()
 prog6 = open('countdown.slang', 'r').read()
 prog7 = open('fib.slang', 'r').read()
 prog8 = open('while.slang', 'r').read()
+prog9 = open('array.slang', 'r').read()
+prog10 = open('map.slang', 'r').read()
 
 # Globals
 
@@ -159,7 +157,11 @@ def s_range(lo, hi):
 
 # Return the size of the array.
 def s_size(arr):
-	return len(arr)
+	return number(len(arr))
+
+# Return an array with the given length, initialized to zeros.
+def s_array(n):
+	return array([0 for i in range(n)])
 
 # Slang core
 
@@ -214,7 +216,7 @@ def tokenize(p):
 		elif c1 == '#':
 			while p[i] != '\n':
 				i += 1
-		elif c1 in '()[]!><+*/':
+		elif c1 in '()[]}{!><+*/':
 			tokens.append(c1)
 			i += 1
 		elif c1 == '=' and c2 != '=' or c1 == '-' and c2 not in digits:
@@ -258,7 +260,6 @@ def parse(tokens):
 		# print('tokens: ' + str(tokens))
 		# print('token: ' + str(token))
 		if token == ')':
-			# print('close paren')
 			lst = deque()
 			while stack[-1] != '(':
 				item = stack.pop()
@@ -267,9 +268,16 @@ def parse(tokens):
 			stack.pop()
 			stack.append(list(lst))
 		elif token == ']':
-			# print('close paren')
 			lst = deque()
 			while stack[-1] != '[':
+				item = stack.pop()
+				# print('adding ' + str(item) + ' to lst')
+				lst.appendleft(item)
+			stack.pop()
+			stack.append(list(lst))
+		elif token == '}':
+			lst = deque()
+			while stack[-1] != '{':
 				item = stack.pop()
 				# print('adding ' + str(item) + ' to lst')
 				lst.appendleft(item)
@@ -277,6 +285,7 @@ def parse(tokens):
 			stack.append(array(list(lst)))
 		else:
 			stack.append(token)
+	# print(stack)
 	return stack.pop()
 
 # Return the value of the expression.
@@ -294,10 +303,17 @@ def evaluate(envs, exp):
 			return find(envs, exp[0])
 	elif exp[0] == '!':
 		return number(int(bool(unwrap(evaluate(envs, exp[1])))))
-	elif len(exp) == 2:						# Function expression
-		args = [evaluate(envs, arg) for arg in exp[1]]
-		# print('calling ' + str(exp[0]) + ' on args ' + str(args))
-		return call(envs, find(envs, exp[0]), args)
+	elif len(exp) == 2:						# Function or array access expression
+		value = find(envs, exp[0])
+		if type(value) == array:
+			index = unwrap(evaluate(envs, exp[1]))
+			if index < 0 or index >= len(value.value):
+				raise IndexError('Cannot access index %d of array "%s".' % (index, exp[0]))
+			return value.value[index]
+		else:
+			args = [evaluate(envs, arg) for arg in exp[1]]
+			# print('calling ' + str(exp[0]) + ' on args ' + str(args))
+			return call(envs, value, args)
 	else:
 		if exp[0] == '==':
 			return number(int(unwrap(evaluate(envs, exp[1])) == unwrap(evaluate(envs, exp[2]))))
@@ -341,16 +357,25 @@ def execute(envs, stms):
 	for stm in stms:
 		if not len(stm):
 			continue
-		elif stm[0] == 'return':	# Return
+		elif stm[0] == 'return':		# Return
 			return number(0) if len(stm) == 1 else evaluate(envs, stm[1])
-		elif stm[0] == '=':			# Assignment
-			res = bind(envs, stm[1], evaluate(envs, stm[2]))
-		elif stm[0] == 'if':		# If
+		elif stm[0] == '=':				# Assignment
+			if type(stm[1]) != list:
+				res = bind(envs, stm[1], evaluate(envs, stm[2]))
+			else:
+				arr = find(envs, stm[1][0])
+				index = unwrap(evaluate(envs, stm[1][1][0]))
+				if type(arr) != array:
+					raise TypeError('Cannot index into "%s" of type %s.' % (stm[1][0], type(arr)))
+				if index < 0 or index >= len(arr.value):
+					raise IndexError('Cannot access index %d of array "%s".' % (index, stm[1][0]))
+				res = arr.value[index] = evaluate(envs, stm[2])
+		elif stm[0] == 'if':			# If
 			if bool(unwrap(evaluate(envs, stm[1]))):
 				res = execute(envs, stm[2])
 			else:
 				res = execute(envs, stm[3])
-		elif stm[0] == 'for':		# For
+		elif stm[0] == 'for':			# For
 			index = stm[1][0]
 			values = evaluate(envs, stm[1][2])
 			envs.append(dict())
@@ -358,12 +383,12 @@ def execute(envs, stms):
 				envs[-1][index] = i
 				res = execute(envs, stm[2])
 			envs.pop()
-		elif stm[0] == 'while':		# While
+		elif stm[0] == 'while':			# While
 			while bool(unwrap(evaluate(envs, stm[1]))):
 				execute(envs, stm[2])
-		elif stm[0] == 'def':		# Function definition
+		elif stm[0] == 'def':			# Function definition
 			res = bind(envs, stm[1], func(stm[1], stm[2], stm[3]))
-		else:						# Function
+		else:							# Function
 			res = evaluate(envs, stm)
 	return res
 
@@ -373,7 +398,9 @@ def interpret(p):
 	stms = parse(tokens)		# Parse
 	global_env = {				# Global environment
 		'print': built_in_func(s_print),
-		'range': built_in_func(s_range)
+		'range': built_in_func(s_range),
+		'size': built_in_func(s_size),
+		'array': built_in_func(s_array)
 	}
 	envs = [global_env]			# Create environment stack
 	# print(stms)
