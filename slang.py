@@ -1,4 +1,5 @@
-# StupidLang (aka Slang): a stupid Python-interpreted programming language.
+# StupidLang (aka Slang)									Jason Kim, 7/7/2016
+# A stupid Python-interpreted programming language.
 
 # Language specification:
 # prog ::= ( stms )
@@ -71,18 +72,23 @@ from collections import deque
 
 # Test code
 
+prog0 = '(( print (( == (3) (3) )) ))'
+
 prog1 = '( ( = x ( 5 ) )\
 		   ( = y ( 3 ) )\
 		   ( if ( > ( x ) ( y ) )\
 		     ( ( print ( ( x ) ) ) )\
 		     ( ( print ( ( y ) ) ) ) ) )'
 
-prog2 = '( ( print ( == ( ! ( 2 ) ) ( ! ( 1 ) ) ) ) )'
+prog2 = '( ( print ( ( == ( ! ( 2 ) ) ( ! ( 1 ) ) ) ) ) )'
 
 prog3 = '((def fn(x,y,z) ((=var "this is a tokenizing stress test!!!\
 		 					123 ABC !@#$%^&*()=")\
-		 				  (print var)\
-		 				  (=arr[1, 2, 3]))))'
+		 				  (print ((var)))\
+		 				  (=arr([1, 2, 3]))))\
+		  (fn(1,2,3))))'
+
+prog4 = '( (def f(x) ((> (x) (1)))) (print ( ( f((2)) ) ) ) )'
 
 # Globals
 
@@ -177,10 +183,11 @@ def unwrap(prim):
 	return prim.value
 
 # Return the evaluation of the given function on its arguments.
-def call(f, args):
+def call(envs, f, args):
 	print('calling ' + str(f))
 	if type(f) == built_in_func:
 		print('built-in')
+		print('args ' + str(args))
 		return f.value(*[unwrap(arg) for arg in args])
 	elif type(f) != func:
 		raise TypeError('Value ' + str(f) + ' is not a function.')
@@ -266,33 +273,35 @@ def parse(tokens):
 
 # Return the value of the expression.
 def evaluate(envs, exp):
+	print('evaluating expression ' + str(exp))
 	if len(exp) == 1:			# Primitive
 		if type(exp[0]) in [number, string, array]:
 			return exp[0]
 		else:
 			return find(envs, exp[0])
+	elif exp[0] == '!':
+		return number(int(bool(unwrap(evaluate(envs, exp[1])))))
 	elif len(exp) == 2:			# Function expression
-		print('function call')
+		print('function call on args ' + str(exp[1]))
 		args = [evaluate(envs, arg) for arg in exp[1]]
-		return call(find(envs, exp[0]), args)
+		print('args ' + str(args))
+		return call(envs, find(envs, exp[0]), args)
 	else:
-		if exp[0] == '!':
-			return 0 if unwrap(evaluate(envs, exp[1])) else 1
-		elif exp[0] == '==':
-			int(unwrap(evaluate(envs, exp[1])) == unwrap(evaluate(envs, exp[2])))
+		if exp[0] == '==':
+			return number(int(unwrap(evaluate(envs, exp[1])) == unwrap(evaluate(envs, exp[2]))))
 		elif exp[0] == '&&':
-			int(unwrap(evaluate(envs, exp[1])) and unwrap(evaluate(envs, exp[2])))
+			return number(int(unwrap(evaluate(envs, exp[1])) and unwrap(evaluate(envs, exp[2]))))
 		elif exp[0] == '||':
-			int(unwrap(evaluate(envs, exp[1])) or unwrap(evaluate(envs, exp[2])))
+			return number(int(unwrap(evaluate(envs, exp[1])) or unwrap(evaluate(envs, exp[2]))))
 		elif exp[0] in '><':
 			val1 = evaluate(envs, exp[1])
 			val2 = evaluate(envs, exp[2])
 			if type(val1) != type(val2) or type(val1) not in [number, string]:
 				raise TypeError('Values ' + str(val1) + ' and ' + str(val2) + ' are not comparable.')
 			if exp[0] == '>':
-				return unwrap(val1) > unwrap(val2)
+				return number(int(unwrap(val1) > unwrap(val2)))
 			else:
-				return unwrap(val1) < unwrap(val2)
+				return number(int(unwrap(val1) < unwrap(val2)))
 
 # Execute the statements in the given list.
 def execute(envs, stms):
