@@ -95,6 +95,7 @@ prog4 = '( (def f(x) ((> (x) (1)))) (print ( ( f((2)) ) ) ) )'
 prog5 = open('prog5.slang', 'r').read()
 prog6 = open('countdown.slang', 'r').read()
 prog7 = open('fib.slang', 'r').read()
+prog8 = open('while.slang', 'r').read()
 
 # Globals
 
@@ -357,6 +358,9 @@ def execute(envs, stms):
 				envs[-1][index] = i
 				res = execute(envs, stm[2])
 			envs.pop()
+		elif stm[0] == 'while':		# While
+			while bool(unwrap(evaluate(envs, stm[1]))):
+				execute(envs, stm[2])
 		elif stm[0] == 'def':		# Function definition
 			res = bind(envs, stm[1], func(stm[1], stm[2], stm[3]))
 		else:						# Function
