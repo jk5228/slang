@@ -92,6 +92,13 @@ ws = ' \t\b\n'
 digits = '0123456789'
 letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
 
+global_env = {
+    'print': built_in_func(s_print),
+    'range': built_in_func(s_range),
+    'size': built_in_func(s_size),
+    'array': built_in_func(s_array)
+}
+
 # Types
 
 class number(object):
@@ -388,12 +395,6 @@ def execute(envs, stms):
 def interpret(p):
     tokens = tokenize(p)        # Tokenize
     stms = parse(tokens)        # Parse
-    global_env = {              # Global environment
-        'print': built_in_func(s_print),
-        'range': built_in_func(s_range),
-        'size': built_in_func(s_size),
-        'array': built_in_func(s_array)
-    }
     envs = [global_env]         # Create environment stack
     # print(stms)
     execute(envs, stms)         # Execute
