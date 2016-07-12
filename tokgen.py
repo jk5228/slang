@@ -10,54 +10,65 @@
 # Each line specifies a token, whose label is on the left and whose value is on
 # the right. Either a token is a literal in the form
 #        label = literal
-# or a regex in the form
-#        label : regex
+# or a pattern in the form
+#        label : pattern
 # Whitespace is ignored. Lines in the spec beginning with "#" are ignored. Only
-# the last definition of a label is used. Literals are always matched before
-# regexes.
+# the last definition of a label is used. Literals are matched before patterns.
 
 import re
 from itertools import chain
 
-# Returns a tokenizer for the given dictionaries of literals and regexes.
-def tokenizer(literals, regexes):
-    ws = re.compile('\s+')
-    def tokfun(prog):
-        tokens = []
+tokprog =\
+'''# A tokenizer generated from tokgen.py.
 
-        while len(prog):
-            print('prog: ' + prog)
-            print('tokens: ' + str(tokens))
+import re
+from itertools import chain
 
-            # Ignore whitespace
-            match = re.match(ws, prog)
+ws = re.compile('\s+')
+pairs = [{0}]
+
+# Return a list of label-token pairs given a program string.
+def tokfun(prog):
+    tokens = []
+    linecount = 1
+
+    while len(prog):
+        # print('prog: ' + prog)
+        # print('tokens: ' + str(tokens))
+
+        # Ignore whitespace
+        match = re.match(ws, prog)
+        if match:
+            # print('ws ' + str(match))
+            prog = prog[match.end(0):]
+            linecount += match.group(0).count('\\n')
+            continue
+
+        # Match token patterns
+        for (label, pattern) in pairs:
+            match = re.match(pattern, prog)
             if match:
-                print('ws ' + str(match))
+                # print('match ' + str(match))
+                tokens.append((label, prog[:match.end(0)]))
                 prog = prog[match.end(0):]
-                continue
+                break
 
-            # Match token patterns
-            for (label, pattern) in chain(literals.items(), regexes.items()):
-                match = re.match(pattern, prog)
-                if match:
-                    print('match ' + str(match))
-                    tokens.append((label, prog[:match.end(0)]))
-                    prog = prog[match.end(0):]
-                    break
+        # No token patterns matched
+        if not match:
+            linefrag = ''
+            try:
+                linefrag = prog[:prog.index('\\n')]
+            except ValueError:
+                linefrag = prog
+            raise SyntaxError('line %%d: unexpected sequence "%%s"'
+                              %% (linecount, linefrag))
 
-            # No token patterns matched
-            if not match:
-                raise SyntaxError('unexpected sequence "%s" ...' % (prog[:5]))
+    return tokens'''
 
-        return tokens
-
-    return tokfun
-
-# Returns a tokenizer for the spec.
+# Returns a list of label-type-value triples for the spec string.
 def parse_spec(spec):
-    literals = dict()
-    regexes = dict()
     lines = spec.split('\n')
+    triples = []
 
     # Process lines
     for line in lines:
@@ -70,19 +81,99 @@ def parse_spec(spec):
         terms = line.split()
 
         if len(terms) != 3:
-            raise SyntaxError('expected format "label [:=] value" but got' +
-                ' %d terms in line "%s".' % (len(terms), line))
+            raise SyntaxError('expected format "label [:=] value" with 3 terms' +
+                ' but instead got line "%s" with %d terms.' % (line, len(terms)))
 
-        # Determine token type
-        (label, typ, value) = terms
+        triples.append(terms)
+
+    return triples
+
+# Return a list of label-regex pairs given a list of label-type-regex triples,
+# with literals followed by patterns.
+def get_pairs(triples):
+
+    literals = dict()
+    patterns = dict()
+
+    for (label, typ, value) in triples:
 
         if typ == '=':                 # Literal
             literals[label] = re.compile(re.escape(value))
-        elif typ == ':':               # Regex
-            regexes[label] = re.compile(value)
+        elif typ == ':':               # Pattern
+            patterns[label] = re.compile(value)
 
     # print(literals)
-    # print(regexes)
+    # print(patterns)
 
-    # Return tokenizer
-    return tokenizer(literals, regexes)
+    # Return pairs
+    return list(literals.items()) + list(patterns.items())
+
+# Returns a tokenizer function for the given spec string.
+def tokenizer(spec):
+    ws = re.compile('\s+')
+    pairs = get_pairs(parse_spec(spec))
+
+    def tokfun(prog):
+        tokens = []
+        linecount = 1
+
+        while len(prog):
+            # print('prog: ' + prog)
+            # print('tokens: ' + str(tokens))
+
+            # Ignore whitespace
+            match = re.match(ws, prog)
+            if match:
+                # print('ws ' + str(match))
+                prog = prog[match.end(0):]
+                linecount += match.group(0).count('\n')
+                continue
+
+            # Match token patterns
+            for (label, pattern) in pairs:
+                match = re.match(pattern, prog)
+                if match:
+                    # print('match ' + str(match))
+                    tokens.append((label, prog[:match.end(0)]))
+                    prog = prog[match.end(0):]
+                    break
+
+            # No token patterns matched
+            if not match:
+                linefrag = ''
+                try:
+                    linefrag = prog[:prog.index('\n')]
+                except ValueError:
+                    linefrag = prog
+                raise SyntaxError('line %d: unexpected sequence "%s"'
+                                  % (linecount, linefrag))
+
+        return tokens
+
+    return tokfun
+
+# Create a tokenizer Python program file at the given path, based on the given
+# spec string.
+def tokfile(path, spec):
+    triples = parse_spec(spec)
+
+    literals = dict()
+    patterns = dict()
+    pair_strs = []
+
+    for (label, typ, value) in triples:
+
+        if typ == '=':                 # Literal
+            literals[label] = value
+        elif typ == ':':               # Pattern
+            patterns[label] = value
+
+    for (label, value) in literals.items():
+        pair_strs.append('(\'%s\', re.compile(re.escape(\'%s\')))' % (label, value))
+
+    for (label, value) in patterns.items():
+        pair_strs.append('(\'%s\', re.compile(\'%s\'))' % (label, value))
+
+    f = open(path, 'w')
+    f.write(tokprog.format(', '.join(pair_strs)))
+    f.close()
