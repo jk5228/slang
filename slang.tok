@@ -15,6 +15,7 @@ while    = while
 for      = for
 in       = in
 comma    = ,
+assign   = =
 plus     = +
 minus    = -
 star     = *
