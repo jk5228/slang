@@ -177,3 +177,11 @@ def tokfile(path, spec):
     f = open(path, 'w')
     f.write(tokprog.format(', '.join(pair_strs)))
     f.close()
+
+# When executed, take filepath fpath and spec filepath sfpath arguments and
+# write a tokenizer program to fpath given the spec at sfpath.
+if __name__ == "__main__":
+    from sys import argv
+    fpath = argv[1]
+    spec = open(argv[2], 'r').read()
+    tokfile(fpath, spec)
