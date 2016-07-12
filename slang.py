@@ -68,8 +68,11 @@
 # To-do:
 # - overall goal: make language I would enjoy using and resolves issues in Python
 # - better modularize interpreter components
-# - write lexer that takes token spec as input
-# - write parser that takes CFG as input
+# - write lexer generator that takes token spec as input
+# - lexer takes program string and returns list of labelled tokens
+# - write parser generator that takes CFG as input (should follow recursive descent parser website algos for normalizing cfg)
+# - parser gen: (1) remove cyclic left recursion, (2) factor, (3) substitute, (4) generate rec-des productions
+# - rec-des parser takes list of labelled tokens and returns parse tree
 # - robust error messages during lexing/parsing
 # - optional environment dump at run-time error
 # - classes

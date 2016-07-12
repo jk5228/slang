@@ -1,0 +1,39 @@
+# The Slang token specification.                            Jason Kim, 7/12/2016
+# Each line specifies a token, whose label is on the left and whose value is on
+# the right. Either a token is a literal in the form
+#        label = literal
+# or a regex in the form
+#        label : regex
+# Whitespace not captured by a regex is ignored.
+
+# Literals
+
+rparen   = (
+lparen   = )
+rbrace   = [
+lbrace   = ]
+rbracket = {
+lbracket = }
+def      = def
+return   = return
+if       = if
+while    = while
+for      = for
+in       = in
+comma    = ,
+plus     = +
+minus    = -
+star     = *
+slash    = /
+not      = !
+and      = &&
+or       = ||
+equals   = ==
+gt       = >
+lt       = <
+
+# Primitives
+
+num      : -?\d+
+str      : "[^"]*"
+id       : [A-Za-z]+
