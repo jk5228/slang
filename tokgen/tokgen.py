@@ -101,15 +101,18 @@ def get_pairs(triples):
     for (label, typ, value) in triples:
 
         if typ == '=':                 # Literal
-            literals[label] = re.compile(re.escape(value))
+            literals[label] = value
         elif typ == ':':               # Pattern
             patterns[label] = re.compile(value)
 
     # print(literals)
     # print(patterns)
 
+    literals = sorted(literals.items(), key=lambda x: x[1], reverse=True)
+    literals = [(label, re.compile(re.escape(value))) for (label, value) in literals]
+
     # Return pairs
-    return list(literals.items()) + list(patterns.items())
+    return literals + list(patterns.items())
 
 # Return a tokenizer function for the given spec string.
 def tokenizer(spec):
@@ -171,9 +174,11 @@ def tokfile(path, spec):
         elif typ == ':':               # Pattern
             patterns[label] = value
 
-    for (label, value) in literals.items():
+    # Add label-literal pairs in lexical order w/r/t literal
+    for (label, value) in sorted(literals.items(), key=lambda x: x[1], reverse=True):
         pair_strs.append('(\'%s\', re.compile(re.escape(\'%s\')))' % (label, value))
 
+    # Add label-pattern pairs in no particular order
     for (label, value) in patterns.items():
         pair_strs.append('(\'%s\', re.compile(\'%s\'))' % (label, value))
 

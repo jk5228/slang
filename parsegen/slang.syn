@@ -5,50 +5,45 @@
 prog : stms
 stms : EMPTY
      | stm stms
-stm  : fExp
-     | = var ( exp )
-     | = ( var [ exp ] ) ( exp )
-     | def var ( farr ) ( stms )
+stm  : lstm ;
+     | bstm
+lstm : fExp
+     | id = exp
+     | id [ exp ] = exp
      | return
-     | return ( exp )
-     | if ( lExp ) ( stms ) ( stms )
-     | while ( lExp ) ( stms )
-     | for ( var in { arr } ) ( stms )
-     | for ( var in var ) ( stms )
-     | for ( var in fExp ) ( stms )
-farr : EMPTY
-       | var , farr
-       | var farr
-exp  : prim
-       | aGet
-       | fExp
-       | aExp
-       | lExp
+     | return exp
+bstm : def id ( ilst ) { stms }
+     | if ( exp ) { stms } else { stms }
+     | while ( exp ) { stms }
+     | for ( id in exp ) { stms }
+ilst : EMPTY
+     | id , ilst
+     | id ilst
+exp  : ( exp )
+     | prim
+     | aGet
+     | fExp
+     | aExp
+     | lExp
 prim : num
-       | str
-       | var
-       | { arr }
-num  : -?\d+
-str  : "[^"]*"
-var  : [A-Za-z]+
-arr  : EMPTY
-       | ( exp ) , arr
-       | ( exp ) arr
-aGet : var [ exp ]
-fExp : var ( parr )
-parr : EMPTY
-       | ( exp ) , parr
-       | ( exp ) parr
-aExp : aOp2 ( exp ) ( exp )
+     | str
+     | id
+     | { elst }
+elst : EMPTY
+     | exp , elst
+aGet : id [ exp ]
+fExp : id ( elst )
+aExp : ( exp ) aOp2 exp
+# TODO: neaten this ^ up
 aOp2 : +
-       | -
-       | *
-       | /
-lExp : lOp1 ( exp )
-       | lOp2 ( exp ) ( exp )
+     | -
+     | *
+     | /
+lExp : lOp1 exp
+     | ( exp ) l2op exp
 lOp1 : !
 lOp2 : &&
-       | ||
-       | ==
-       | >
-       | <
+     | ||
+     | ==
+     | >
+     | <

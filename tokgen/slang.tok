@@ -2,34 +2,34 @@
 
 # Literals
 
-rparen   = (
-lparen   = )
-rbrace   = [
-lbrace   = ]
-rbracket = {
-lbracket = }
-scolon   = ;
-comma    = ,
-def      = def
-return   = return
-if       = if
-while    = while
-for      = for
-in       = in
-assign   = =
-plus     = +
-minus    = -
-star     = *
-slash    = /
-not      = !
-and      = &&
-or       = ||
-equals   = ==
-gt       = >
-lt       = <
+(      = (
+)      = )
+[      = [
+]      = ]
+{      = {
+}      = }
+;      = ;
+,      = ,
+def    = def
+return = return
+if     = if
+while  = while
+for    = for
+in     = in
+=      = =
++      = +
+-      = -
+*      = *
+/      = /
+!      = !
+&&     = &&
+||     = ||
+==     = ==
+>      = >
+<      = <
 
 # Patterns
 
-num      : -?\d+
-str      : "[^"]*"
-id       : [A-Za-z]+
+num    : -?\d+
+str    : "[^"]*"
+id     : [A-Za-z]+
