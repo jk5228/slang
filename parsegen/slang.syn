@@ -34,7 +34,6 @@ elst : EMPTY
 aGet : id [ exp ]
 fExp : id ( elst )
 aExp : ( exp ) aOp2 exp
-# TODO: neaten this ^ up
 aOp2 : +
      | -
      | *
