@@ -22,8 +22,7 @@
 import re
 from itertools import chain
 
-tokprog =\
-'''# A tokenizer generated from tokgen.py.
+tokprog = '''# A tokenizer generated from tokgen.py.
 
 import re
 from itertools import chain

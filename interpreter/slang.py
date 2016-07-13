@@ -65,7 +65,7 @@
 # - For loops work like Python for loops, iterating over an array.
 # - Built-in functions include: print, range, size, array.
 
-# To-do:
+# TODO:
 # - overall goal: make language I would enjoy using and resolves issues in Python
 # - better modularize interpreter components
 # - write lexer generator that takes token spec as input

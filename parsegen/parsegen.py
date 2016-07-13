@@ -85,10 +85,48 @@ def parse_spec(spec):
 
     return rules
 
+# Return the index after adding the new nonterminal to it.
+def add(index, nt):
+    index[nt] = len(index)
+    return index
+
+# Return the syntax after removing cyclic left recursion.
+def remove_cyclic_left_rec(rules):
+    index = {nt: i for (i, nt) in enumerate(rules)}     # Index of nonterminals
+    key = lambda x: index[x]
+
+    for (i, nt, prods) in ((index[nt], nt, rules[nt]) for nt in sorted(rules, key=key)):
+        print('%d %s %s' % (i, nt, str(prods)))
+        newprods = []
+        for prod in prods:
+            while rules[prod[0]] and index[prod[0]] < i:
+                asd
+            if prod[0] == nt:
+                remove_left_rec()
+
+# Return the normalized form of the syntax. This is the syntax obtained after
+# removing left recursion, removing unreachable nonterminals, factoring, and
+# substituting.
+def normalize_syntax(rules):
+
+    # Remove left recursion
+    rules = remove_cyclic_left_rec(rules)
+
+    # Remove unreachable nonterminals
+    # TODO: this
+
+    # Factor
+    # TODO: factor
+
+    # Substitute
+    # TODO: substitute
+
+    return rules
+
 # # Test code
 
-# syn = open('sample.syn', 'r').read()
-# print(parse_spec(syn))
+syn = open('sample.syn', 'r').read()
+print(normalize_syntax(parse_spec(syn)))
 
 # # When executed, take filepath fpath and spec filepath sfpath arguments and
 # # write a parser program to fpath given the spec at sfpath.

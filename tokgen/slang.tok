@@ -28,7 +28,7 @@ equals   = ==
 gt       = >
 lt       = <
 
-# Primitives
+# Patterns
 
 num      : -?\d+
 str      : "[^"]*"
