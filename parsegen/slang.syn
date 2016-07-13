@@ -2,52 +2,52 @@
 
 # Production rules
 
-prog ::= ( stms )
-stms ::= LAMBDA
-       | ( stm ) stms
-stm  ::= fExp
-       | = var ( exp )
-       | = ( var [ exp ] ) ( exp )
-       | def var ( farr ) ( stms )
-       | return
-       | return ( exp )
-       | if ( lExp ) ( stms ) ( stms )
-       | while ( lExp ) ( stms )
-       | for ( var in { arr } ) ( stms )
-       | for ( var in var ) ( stms )
-       | for ( var in fExp ) ( stms )
-farr ::= LAMBDA
+prog : stms
+stms : EMPTY
+     | stm stms
+stm  : fExp
+     | = var ( exp )
+     | = ( var [ exp ] ) ( exp )
+     | def var ( farr ) ( stms )
+     | return
+     | return ( exp )
+     | if ( lExp ) ( stms ) ( stms )
+     | while ( lExp ) ( stms )
+     | for ( var in { arr } ) ( stms )
+     | for ( var in var ) ( stms )
+     | for ( var in fExp ) ( stms )
+farr : EMPTY
        | var , farr
        | var farr
-exp  ::= prim
+exp  : prim
        | aGet
        | fExp
        | aExp
        | lExp
-prim ::= num
+prim : num
        | str
        | var
        | { arr }
-num  ::= -?\d+
-str  ::= "[^"]*"
-var  ::= [A-Za-z]+
-arr  ::= LAMBDA
+num  : -?\d+
+str  : "[^"]*"
+var  : [A-Za-z]+
+arr  : EMPTY
        | ( exp ) , arr
        | ( exp ) arr
-aGet ::= var [ exp ]
-fExp ::= var ( parr )
-parr ::= LAMBDA
+aGet : var [ exp ]
+fExp : var ( parr )
+parr : EMPTY
        | ( exp ) , parr
        | ( exp ) parr
-aExp ::= aOp2 ( exp ) ( exp )
-aOp2 ::= +
+aExp : aOp2 ( exp ) ( exp )
+aOp2 : +
        | -
        | *
        | /
-lExp ::= lOp1 ( exp )
+lExp : lOp1 ( exp )
        | lOp2 ( exp ) ( exp )
-lOp1 ::= !
-lOp2 ::= &&
+lOp1 : !
+lOp2 : &&
        | ||
        | ==
        | >

@@ -8,13 +8,14 @@ rbrace   = [
 lbrace   = ]
 rbracket = {
 lbracket = }
+scolon   = ;
+comma    = ,
 def      = def
 return   = return
 if       = if
 while    = while
 for      = for
 in       = in
-comma    = ,
 assign   = =
 plus     = +
 minus    = -

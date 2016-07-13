@@ -3,15 +3,19 @@
 # TokGen                                                    Jason Kim, 7/12/2016
 # A tokenizer generator.
 # Takes a token spec in the .tok format and returns a tokenizer that follows the
-# spec. The tokenizer takes a program string and returns a list of strings
-# labelled as pairs (label, string).
+# spec. The tokenizer takes a program string and returns a list of pairs in the
+# format (label, value), where label and value are both strings.
 # 
 # The .tok format:
 # Each line specifies a token, whose label is on the left and whose value is on
 # the right. Either a token is a literal in the form
+#
 #        label = literal
+#
 # or a pattern in the form
+#
 #        label : pattern
+#
 # Whitespace is ignored. Lines in the spec beginning with "#" are ignored. Only
 # the last definition of a label is used. Literals are matched before patterns.
 
@@ -65,24 +69,24 @@ def tokfun(prog):
 
     return tokens'''
 
-# Returns a list of label-type-value triples for the spec string.
+# Return a list of label-type-value triples for the spec string.
 def parse_spec(spec):
     lines = spec.split('\n')
     triples = []
 
     # Process lines
-    for line in lines:
+    for (i, line) in enumerate(lines):
 
         # Ignore empty lines and comments
-        if not len(line) or line[0] == '#':
+        if not line.split() or line[0] == '#':
             continue
 
         # Validate line format
         terms = line.split()
 
         if len(terms) != 3:
-            raise SyntaxError('expected format "label [:=] value" with 3 terms' +
-                ' but instead got line "%s" with %d terms.' % (line, len(terms)))
+            raise SyntaxError('line %d: expected format "label [:=] value" with' +
+                '  3 terms but instead got line "%s" with %d terms.' % (i, line, len(terms)))
 
         triples.append(terms)
 
@@ -108,7 +112,7 @@ def get_pairs(triples):
     # Return pairs
     return list(literals.items()) + list(patterns.items())
 
-# Returns a tokenizer function for the given spec string.
+# Return a tokenizer function for the given spec string.
 def tokenizer(spec):
     ws = re.compile('\s+')
     pairs = get_pairs(parse_spec(spec))
