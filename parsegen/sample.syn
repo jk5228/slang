@@ -1,0 +1,6 @@
+a : b a a | c
+b : d
+  | e
+  | f
+c : a | b
+a : EMPTY

@@ -18,6 +18,7 @@
 # first beginning with "|". Whitespace in a .syn file is ignored. Lines in the
 # spec beginning with "#" are ignored.
 
+import re
 from collections import defaultdict
 
 # Return a dictionary of nonterminals mapped to lists of productions for the
@@ -26,66 +27,73 @@ def parse_spec(spec):
     lines = spec.split('\n')
     rules = defaultdict(list)
     ident = re.compile('\w+')
+    i = 0
 
     # Process lines
     while i < len(lines):
 
         line = lines[i]
+        terms = line.split()
+
+        # print('line %d: "%s"' % (i, line))
 
         # Ignore empty lines and comments
-        if not line.split() or line[0] == '#':
+        if not terms or line[0] == '#':
             i += 1
             continue
 
-        # Validate line format
-        terms = line.split()
+        # Validate format
+        if not re.match(ident, terms[0]) or len(terms) == 1 or terms[1] != ':':
+            raise SyntaxError('expected format "nonterminal : production" or' +
+                              ' "| production" but instead got production rule "%s".' % (line))
 
-        if re.match(ident, terms[0]) and terms[1] == ':':   # New production rule
-            nonterm = terms[0]
-            prod = []
-            i += 1
+        nonterm = terms[0]
+        prod = []
+        i += 1
 
-            # Join all lines of current production rule
-            for line in lines[i+1:]:
-                newterms = line.split()
-                if not len(newterms):
-                    i += 1
-                    continue
-                elif newterms[0] == '|':
-                    terms += newterms[1:]
-                    i += 1
+        # Merge all lines of current production rule
+        for line in lines[i:]:
+            newterms = line.split()
+            if not len(newterms):
+                i += 1
+                continue
+            elif newterms[0] == '|':
+                terms += newterms[1:]
+                i += 1
+            else:
+                break
+
+        # Verify that production isn't empty and doesn't end with '|'
+        if not len(terms[2:]) or terms[-1] == '|':
+            raise SyntaxError('cannot have empty production without explicit "EMPTY"' +
+                              ' but got production rule "%s"' % (' '.join(terms)))
+
+        # Process production rule
+        for term in terms[2:]:
+            if term == '|':
+                if len(prod):
+                    rules[nonterm].append(prod)
+                    prod = []
                 else:
-                    break
+                    raise SyntaxError('cannot have empty production without explicit "EMPTY"' +
+                                      ' but got production rule "%s"' % (' '.join(terms)))
+            else:
+                prod.append(term)
 
-            # Verify that production isn't empty and doesn't end with '|'
-            if len(terms[2:]) or terms[-1] == '|':
-                raise SyntaxError('cannot have empty production without explicit "EMPTY"')
-
-            # Process production rule
-            for term in terms[2:]:
-                if term == '|':
-                    if len(prod):
-                        rules[nonterm].append(prod)
-                        prod = []
-                    else:
-                        raise SyntaxError('cannot have empty' +
-                                          ' production with explicit "EMPTY"' % (i))
-                else:
-                    prod.append(term)
-
-            # Add last production
-            rules[nonterm].append(prod)
-
-        else:
-            raise SyntaxError('line %d: expected format "nonterminal : production" or' +
-                ' "| production" but instead got line "%s".' % (i, line))
+        # Add last production
+        rules[nonterm].append(prod)
 
     return rules
 
-# When executed, take filepath fpath and spec filepath sfpath arguments and
-# write a parser program to fpath given the spec at sfpath.
-if __name__ == "__main__":
-    from sys import argv
-    fpath = argv[1]
-    spec = open(argv[2], 'r').read()
-    # TODO: generate parser file
+# # Test code
+
+# syn = open('sample.syn', 'r').read()
+# print(parse_spec(syn))
+
+# # When executed, take filepath fpath and spec filepath sfpath arguments and
+# # write a parser program to fpath given the spec at sfpath.
+# if __name__ == "__main__":
+#     from sys import argv
+#     fpath = argv[1]
+#     spec = open(argv[2], 'r').read()
+#     # TODO: generate parser file
