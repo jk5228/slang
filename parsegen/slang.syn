@@ -19,6 +19,8 @@ bstm : def id ( ilst ) { stms }
 ilst : EMPTY
      | id , ilst
      | id ilst
+# TODO: could do exp : tExp (single-term exp) | rExp (recursive exp) and then
+# define aExp and lExp to only have one term that recurses on exp (rather than tExp)
 exp  : ( exp )
      | prim
      | aGet
