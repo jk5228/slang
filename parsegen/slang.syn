@@ -5,22 +5,23 @@
 prog : stms
 stms : EMPTY
      | stm stms
-stm  : lstm ;
-     | bstm
-lstm : fExp
+stm  : line ;
+     | blck
+line : fExp
      | id = exp
      | id [ exp ] = exp
      | return
      | return exp
-bstm : def id ( ilst ) { stms }
+blck : def id ( iLst ) { stms }
      | if ( exp ) { stms } else { stms }
      | while ( exp ) { stms }
      | for ( id in exp ) { stms }
-ilst : EMPTY
-     | id , ilst
-     | id ilst
-# TODO: could do exp : tExp (single-term exp) | rExp (recursive exp) and then
-# define aExp and lExp to only have one term that recurses on exp (rather than tExp)
+iLst : EMPTY
+     | id , iLst
+     | id iLst
+# TODO: Could do exp : tExp (single-term exp) | rExp (recursive exp) and then
+# define aExp and lExp to only have one term that recurses on exp (rather than
+# tExp). Otherwise have to have to specify precedence for some operators.
 exp  : ( exp )
      | prim
      | aGet

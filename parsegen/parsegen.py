@@ -52,6 +52,7 @@ def parse_spec(spec):
 
         nonterm = terms[0]
         prod = []
+        empty = False
         i += 1
 
         # Get root nonterminal
@@ -65,7 +66,7 @@ def parse_spec(spec):
                 i += 1
                 continue
             elif newterms[0] == '|':
-                terms += newterms[1:]
+                terms += newterms
                 i += 1
             else:
                 break
@@ -75,19 +76,24 @@ def parse_spec(spec):
             raise SyntaxError('cannot have empty production without explicit "EMPTY"' +
                               ' but got production rule "%s"' % (' '.join(terms)))
 
+        # print('nt, ts: %s, %s' % (nonterm, str(terms)))
+
         # Process production rule
         for term in terms[2:]:
             if term == '|':
-                if len(prod):
+                if len(prod) or empty:
                     rules[nonterm].append(prod)
                     prod = []
+                    empty = False
                 else:
                     raise SyntaxError('cannot have empty production without explicit "EMPTY"' +
                                       ' but got production rule "%s"' % (' '.join(terms)))
+            elif term == 'EMPTY':
+                    empty = True
             else:
                 prod.append(term)
 
-        # Add last production
+        # Add last production (we know we don't have an implicit empty)
         rules[nonterm].append(prod)
 
     return (root, rules)
@@ -153,8 +159,9 @@ def parser(root, rules):
 
         # Initialize chart
         states = [[] for i in range(len(tokens)+1)]
-        start = entry('pred', root, rules[root][0], 0, 0)
-        states[0].append(start)
+        for prod in rules[root]:            # Add all possible root productions
+            e = entry('pred', root, prod, 0, 0)
+            states[0].append(e)
 
         # Fill chart
         for (i, state) in enumerate(states):
@@ -168,7 +175,7 @@ def parser(root, rules):
                     complete(rules, i, state, e)
 
         # Verify that there was a valid parse
-        roots = [e for e in states[-1] if e.nt = root and e.origin = 0 and e.completed()]
+        roots = [e for e in states[-1] if e.nt == root and e.origin == 0 and e.completed()]
         if len(roots) != 1:
             raise SyntaxError('expected 1 valid parse but got ' + str(len(roots)))
             for root in roots:              # Print valid parse trees for tokens
@@ -263,7 +270,7 @@ def parser(root, rules):
 
 # # Test code
 
-syn = open('sample.syn', 'r').read()
+syn = open('slang.syn', 'r').read()
 print(parse_spec(syn))
 
 # # When executed, take filepath fpath and spec filepath sfpath arguments and
