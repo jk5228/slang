@@ -1,61 +1,9 @@
-#!/usr/bin/python
+#!/usr/local/bin/python3
 
 # StupidLang (aka Slang)                                     Jason Kim, 7/7/2016
 # A stupid Python-interpreted, dynamically-typed, imperative programming
 # language, featuring first-class functions, multitype arrays, and horrific
 # syntax.
-
-# Language specification:
-# prog ::= ( stms )
-# stms ::= LAMBDA
-#        | ( stm ) stms
-# stm  ::= fExp
-#        | = var ( exp )
-#        | = ( var [ exp ] ) ( exp )
-#        | def var ( farr ) ( stms )
-#        | return
-#        | return ( exp )
-#        | if ( lExp ) ( stms ) ( stms )
-#        | while ( lExp ) ( stms )
-#        | for ( var in { arr } ) ( stms )
-#        | for ( var in var ) ( stms )
-#        | for ( var in fExp ) ( stms )
-# farr ::= LAMBDA
-#        | var , farr
-#        | var farr
-# exp  ::= prim
-#        | aGet
-#        | fExp
-#        | aExp
-#        | lExp
-# prim ::= num
-#        | str
-#        | var
-#        | { arr }
-# num  ::= -?\d+
-# str  ::= "[^"]*"
-# var  ::= [A-Za-z]+
-# arr  ::= LAMBDA
-#        | ( exp ) , arr
-#        | ( exp ) arr
-# aGet ::= var [ exp ]
-# fExp ::= var ( parr )
-# parr ::= LAMBDA
-#        | ( exp ) , parr
-#        | ( exp ) parr
-# aExp ::= aOp2 ( exp ) ( exp )
-# aOp2 ::= +
-#        | -
-#        | *
-#        | /
-# lExp ::= lOp1 ( exp )
-#        | lOp2 ( exp ) ( exp )
-# lOp1 ::= !
-# lOp2 ::= &&
-#        | ||
-#        | ==
-#        | >
-#        | <
 
 # Language notes:
 # - Comments run from # to the end of the line.

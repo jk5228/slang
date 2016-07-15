@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/local/bin/python3
 
 # TokGen                                                    Jason Kim, 7/12/2016
 # A tokenizer generator.
@@ -160,7 +160,7 @@ def tokenizer(spec):
 
 # Create a tokenizer Python program file at the given path, based on the given
 # spec string.
-def tokfile(path, spec):
+def tok_file(path, spec):
     triples = parse_spec(spec)
 
     literals = dict()
@@ -182,8 +182,9 @@ def tokfile(path, spec):
     for (label, value) in patterns.items():
         pair_strs.append('(\'%s\', re.compile(\'%s\'))' % (label, value))
 
+    # Write file
     f = open(path, 'w')
-    f.write(tokprog.format(', '.join(pair_strs)))
+    f.write(tokprog.format(','.join(pair_strs)))
     f.close()
 
 # When executed, take filepath fpath and spec filepath sfpath arguments and
