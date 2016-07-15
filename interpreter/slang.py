@@ -75,12 +75,15 @@
 # - rec-des parser takes list of labelled tokens and returns parse tree
 # - robust error messages during lexing/parsing
 # - optional environment dump at run-time error
+# - IR optimizations (contracting a subset of the NTs [allow user to specify this in .syn file])
 # - classes
 # - lambdas
 # - ranges (a la Ruby)
 # - built-in, first-class regexes
 # - Currying?
 # - optional static type-checking?
+# - strong typing?
+# - "compilation" into condensed format or even bytecode?
 # - include other useful built-in functions
 # - robust pattern-matching
 # - either support or disallow nested functions
@@ -103,6 +106,8 @@ global_env = {
 }
 
 # Types
+
+# TODO: have every class inherit from object?
 
 class number(object):
 

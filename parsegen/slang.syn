@@ -1,56 +1,62 @@
 # The Slang syntax specification.                           Jason Kim, 7/12/2016
 
+# TODO: allow precedence rules in parser generator?
+
 # Production rules
 
-prog : stms
-stms : EMPTY
-     | sPls
-sPls : stm
-     | stm stms
-stm  : line ;
-     | blck
-line : fExp
-     | id = exp
-     | id [ exp ] = exp
-     | return
-     | return exp
-blck : def id ( iLst ) { stms }
-     | if ( exp ) { stms } else { stms }
-     | while ( exp ) { stms }
-     | for ( id in exp ) { stms }
-iLst : EMPTY
-     | iPls
-iPls : id
-     | id , iPls
-# TODO: Could do exp : tExp (single-term exp) | rExp (recursive exp) and then
-# define aExp and lExp to only have one term that recurses on exp (rather than
-# tExp). Otherwise have to have to specify precedence for some operators.
-exp  : ( exp )
-     | prim
-     | aGet
-     | fExp
-     | aExp
-     | lExp
-prim : num
-     | str
-     | id
-     | { eLst }
-eLst : EMPTY
-     | ePls
-ePls : exp
-     | exp , ePls
-aGet : id [ exp ]
-fExp : id ( eLst )
-aExp : ( exp ) aOp2 exp
-aOp2 : +
-     | -
-     | *
-     | /
-lExp : lOp1 exp
-     | ( exp ) l2op exp
-lOp1 : !
-lOp2 : &&
-     | ||
-     | ==
-     | >
-     | <
+prog     : stm*
+stm*     : EMPTY
+         | stm+
+stm+     : stm
+         | stm stm*
+stm      : line ;
+         | block
+line     : funExp
+         | assign
+         | break
+         | return
+         | return exp
+assign   : id = exp
+         | arrAcc = exp
+block    : funBlk
+         | ifBlk
+         | whileBlk
+         | forBlk
+funBlk   : def id ( id* ) { stm* }
+ifBlk    : if ( exp ) { stm* } else { stm* }
+whileBlk : while ( exp ) { stm* }
+forBlk   : for ( id in exp ) { stm* }
+id*      : EMPTY
+         | id+
+id+      : id
+         | id , id+
+exp      : ( exp )
+         | prim
+         | arrAcc
+         | funExp
+         | arrExp
+         | arithExp
+         | logExp
+prim     : num
+         | str
+         | id
+arrExp   : { exp* }
+exp*     : EMPTY
+         | exp+
+exp+     : exp
+         | exp , exp+
+arrAcc   : id [ exp ]
+funExp   : id ( exp* )
+arithExp : ( exp ) aOp2 exp
+aOp2     : +
+         | -
+         | *
+         | /
+logExp   : lOp1 exp
+         | ( exp ) l2op exp
+lOp1     : !
+lOp2     : &&
+         | ||
+         | ==
+         | >
+         | <
