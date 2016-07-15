@@ -21,7 +21,7 @@
 # considered the root nonterminal of the grammar.
 
 import re
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
 
 # Return a root nonterminal and defaultdict(list) of nonterminals mapped to
 # lists of productions for the given spec string.
@@ -110,76 +110,115 @@ class entry(object):
         self.dot = dot
         self.children = []
 
+    # Return a string id unique for each (nt, prod, origin) triple.
+    def id(self):
+        return '{0}:{1};{2},{3}'.format(self.nt, self.prod, self.origin, self.dot)
+
     # Return whether the production is completed.
     def completed(self):
         return self.dot >= len(self.prod)
 
-    # Return the next symbol to process
+    # Return the next symbol to process.
     def next(self):
-        return self.prod[self.dot]
+        if not self.completed():
+            return self.prod[self.dot]
+        else:
+            raise IndexError('no next term for completed production "%s".' % str(self.prod))
 
-# Add any predicted entries to the given state.
-def predict(rules, i, state, e):
+# Add the entry to the column (OrderedDict) if there isn't already a rule with
+# the same id in the column.
+def add(col, e):
+    if not col.get(e.id()):
+        col[e.id()] = e
+
+# Add any predicted entries to the given column.
+def predict(rules, i, col, e):
     for prod in rules[e.next()]:
-        state.append(entry('pred', e.next(), prod, i, 0))
+        add(col, entry('pred', e.next(), prod, i, 0))
 
-# Add the scanned entry to the given state if the next token is expected.
-def scan(tokens, i, state, e):
-    if e.next() == tokens[i]:
-        scan = entry('scan', e.next(), e.prod, e.origin, i+1)
-        scan.children = e.Children          # Pass on children
-        state.append(scan)
+# Add the scanned entry to the given column if the next token is expected.
+def scan(token, i, col, e):
+    if e.next() == token[0]:
+        scan_ent = entry('scan', e.nt, e.prod, e.origin, e.dot+1)
+        scan_ent.children = e.children          # Pass on children
+        add(col, scan_ent)
 
-# Add the completed entry.
-def complete(rules, i, state, e):
-    for cand in state[e.origin]:
-        if rules[cand.next()] and cand.next() == cand.nt:
-            comp = entry('comp', cand.nt, cand.prod, cand.origin, i)
-            comp.children.append(e)         # Add child
-            state.append(comp)
+# Add the completed entry to the given column.
+def complete(rules, cols, col, e):
+    # print(col.values())
+    for cand in cols[e.origin].values():
+        # print('CAND: [%s] %s -> %s (%d, %d)' % (e.type, e.nt, e.prod, e.origin, e.dot))
+        # print(cand.id())
+        if not cand.completed() and rules[cand.next()] and cand.next() == e.nt:
+            print('%s completing %s' % (e.id(), cand.id()))
+            print('cand %s children: %s' % (cand.id(), [e.id() for e in cand.children]))
+            print('comp %s children: %s' % (e.id(), [e.id() for e in e.children]))
+            comp_ent = entry('comp', cand.nt, cand.prod, cand.origin, cand.dot+1)
+            comp_ent.children = cand.children[:] # Pass on children
+            comp_ent.children.append(e)         # Add child
+            add(col, comp_ent)
+            # print('COMP: [%s] %s -> %s (%d, %d)' % (e.type, e.nt, e.prod, e.origin, e.dot))
 
 # Return the parse tree (list) for the given root entry of an Earley parse.
 def getparse(rules, tokens, root):
     if not root: return
     rhs = []
     children = iter(root.children)
+    print('%s: %s' % (root.nt, [e.id() for e in root.children]))
     for (i, term) in enumerate(root.prod):
         if rules[term]:                     # Nonterminal
-            rhs.append(getparse(rules, tokens, next(children)))
+            try:
+                rhs.append(getparse(rules, tokens, next(children)))
+            except StopIteration:
+                pass
         else:                               # Terminal
             rhs.append(tokens[i+root.origin])
-    return (root.nt, children)
+    return (root.nt, rhs)
 
 
 # Return an Earley parser given a grammar. The parser returns the parse tree of
 # a given list of tokens or raises an error if there is more than one valid
 # parse of the list of tokens.
 def parser(root, rules):
+
+    # The Earley parser function
     def parsefun(tokens):
 
         # Initialize chart
-        states = [[] for i in range(len(tokens)+1)]
+        cols = [OrderedDict() for i in range(len(tokens)+1)]
         for prod in rules[root]:            # Add all possible root productions
             e = entry('pred', root, prod, 0, 0)
-            states[0].append(e)
+            add(cols[0], e)
 
         # Fill chart
-        for (i, state) in enumerate(states):
-            for e in state:
+        for (i, col) in enumerate(cols):
+            if not len(col):
+                raise SyntaxError('unexpected token "%s"' % tokens[i][1])       # TODO:
+
+            # if i > 30: return
+            l, r = tokens[i] if i < len(tokens) else ('','')
+            print('=== col %d : %s %s ===' % (i, l, r))
+
+            for e in col.values():
+                print('entry: [%s] %s -> %s (%d, %d)' % (e.type, e.nt, e.prod, e.origin, e.dot))
+                print('children: %s' % [c.id() for c in e.children])
                 if not e.completed():       # Uncompleted
                     if rules[e.next()]:     # Nonterminal
-                        predict(rules, i, state, e)
+                        predict(rules, i, col, e)
                     else:                   # Terminal
-                        scan(tokens, i, state, e)
+                        print('scan')
+                        if i+1 < len(cols):
+                            scan(tokens[i], i+1, cols[i+1], e)
                 else:                       # Completed
-                    complete(rules, i, state, e)
+                    print('comp')
+                    complete(rules, cols, col, e)
 
         # Verify that there was a valid parse
-        roots = [e for e in states[-1] if e.nt == root and e.origin == 0 and e.completed()]
+        roots = [e for e in cols[-1].values() if e.nt == root and e.origin == 0 and e.completed()]
         if len(roots) != 1:
             raise SyntaxError('expected 1 valid parse but got ' + str(len(roots)))
-            for root in roots:              # Print valid parse trees for tokens
-                print(getparse(rules, tokens, root))
+            for rt in roots:              # Print valid parse trees for tokens
+                print(getparse(rules, tokens, rt))
 
         # Return the valid parse tree
         return getparse(rules, tokens, roots[0])
@@ -271,7 +310,9 @@ def parser(root, rules):
 # # Test code
 
 syn = open('slang.syn', 'r').read()
-print(parse_spec(syn))
+root, rules = parse_spec(syn)
+# print(root, rules)
+parser = parser(root, rules)
 
 # # When executed, take filepath fpath and spec filepath sfpath arguments and
 # # write a parser program to fpath given the spec at sfpath.

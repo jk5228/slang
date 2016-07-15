@@ -4,6 +4,8 @@
 
 prog : stms
 stms : EMPTY
+     | sPls
+sPls : stm
      | stm stms
 stm  : line ;
      | blck
@@ -17,8 +19,9 @@ blck : def id ( iLst ) { stms }
      | while ( exp ) { stms }
      | for ( id in exp ) { stms }
 iLst : EMPTY
-     | id , iLst
-     | id iLst
+     | iPls
+iPls : id
+     | id , iPls
 # TODO: Could do exp : tExp (single-term exp) | rExp (recursive exp) and then
 # define aExp and lExp to only have one term that recurses on exp (rather than
 # tExp). Otherwise have to have to specify precedence for some operators.
@@ -31,11 +34,13 @@ exp  : ( exp )
 prim : num
      | str
      | id
-     | { elst }
-elst : EMPTY
-     | exp , elst
+     | { eLst }
+eLst : EMPTY
+     | ePls
+ePls : exp
+     | exp , ePls
 aGet : id [ exp ]
-fExp : id ( elst )
+fExp : id ( eLst )
 aExp : ( exp ) aOp2 exp
 aOp2 : +
      | -

@@ -63,8 +63,8 @@ def tokfun(prog):
                 linefrag = prog[:prog.index('\\n')]
             except ValueError:
                 linefrag = prog
-            raise SyntaxError('line %%d: unexpected sequence "%%s"'
-                              %% (linecount, linefrag))
+            raise SyntaxError('line %d: unexpected sequence "%s"'
+                              % (linecount, linefrag))
 
     return tokens'''
 

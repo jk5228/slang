@@ -1,19 +1,14 @@
-(
-	( def map ( f arr )
-		(
-			( = res ( array( ( size(arr) ) ) ) )
-			( for ( i in ( range( 0, ( size(arr) ) ) ) )
-				(
-					( = ( res[i] ) ( f( ( arr[i] ) ) ) )
-				)
-			)
-			( return res )
-		)
-	)
-	( def square (x)
-		(
-			( return ( * x x ) )
-		)
-	)
-	(print((map(square, (range(0,10))))))
-)
+def map(fn, lst) {
+    res = {};
+    for (i in range(0, size(lst))) {
+        res[i] = fn(lst[i]);
+    }
+    return res;
+}
+
+def square(n) {
+    return (n) * n;
+}
+
+lst = {1, 2, 3};
+print(map(fn, lst));
