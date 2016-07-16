@@ -13,14 +13,14 @@ stm+     < stm
          | stm stm*
 stm      : line ;
          | block
-line     : funExp
+line     < funExp
          | assign
          | break
          | return
          | return exp
 assign   : id = exp
          | arrAcc = exp
-block    : funBlk
+block    < funBlk
          | ifBlk
          | whileBlk
          | forBlk

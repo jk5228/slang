@@ -47,7 +47,7 @@ def run(p):
     tokens = tokenize.tokenize(p)           # Tokenize
     # print(tokens)
     tree = parse.parse(tokens)              # Parse
-    # print(tree)
+    parse.print_tree(tree)
 
     # envs = [global_env]         # Create environment stack
     # print(stms)

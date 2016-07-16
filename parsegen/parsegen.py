@@ -28,10 +28,11 @@
 #
 # Whitespace in a .syn file is ignored. Lines in the spec beginning with "#" are
 # ignored. The first nonterminal specified is considered the root nonterminal of
-# the grammar. The separator ":" denotes a nonterminal that should be kept
+# the grammar. The separator ":" denotes a nonterminal that will be kept
 # around in the generated parse tree. The other separator "<" denotes a
-# nonterminal that should be contracted from the parse tree (i.e., it's children
-# become the children of the parent of the contracted nonterminal node).
+# nonterminal that will be contracted from the parse tree (i.e., it's children
+# become the children of the parent of the contracted nonterminal node). The
+# root nonterminal cannot be contracted.
 
 import re
 from collections import defaultdict, OrderedDict
@@ -117,12 +118,35 @@ def get_tree(rules, tokens, root):
         rhs.append(get_tree(rules, tokens, child))
     return (root.nt, rhs)
 
+# Return the given parse tree after normalization. A normalized tree contains
+# none of the nonterminals in clist and all and only the terminals in tlist.
+def normalize_tree(tlist, clist, root):
+    def rec(root):
+        if not root: return []
+        lhs, rhs = root
+        if type(rhs) == list:       # Nonterminal
+            res_rhs = []
+            rhs = [rec(t) for t in rhs]
+            rhs = [item for sublist in rhs for item in sublist]
+            for t in rhs:
+                if type(t) == list: res_rhs.extend(t)
+                else: res_rhs.append(t)
+            if lhs in clist:        # Contracted nonterminal
+                return [res_rhs]
+            else:                   # Uncontracted nonterminal
+                return [(lhs, res_rhs)]
+        elif lhs in tlist:          # Preserved terminal
+                return [(lhs, rhs)]
+        else:                       # Unpreserved terminal
+            return []
+    return rec(root)[0]
+
 # Pretty print the parse tree, with subsequent levels indented to show nesting.
 def print_tree(root):
     def rec(root, level):
         if not root: return
         lhs, rhs = root
-        print('%s%s' % ('| '*level, lhs), end='')
+        print(('%s%s' % ('| '*level, lhs)), end='')
         if type(rhs) == list:
             print()
             for term in rhs:
@@ -156,6 +180,7 @@ def parse(tokens):
             # print('children: %s' % [c.id() for c in e.children])
             if not e.completed():       # Uncompleted
                 if rules[e.next()]:     # Nonterminal
+                    # print('pred')
                     predict(rules, i, col, e)
                 else:                   # Terminal
                     # print('scan')
@@ -174,7 +199,7 @@ def parse(tokens):
             print_tree(get_tree(rules, tokens, rt))
 
     # Return the valid parse tree
-    return get_tree(rules, tokens, roots[0])'''
+    return normalize_tree(tlist, clist, get_tree(rules, tokens, roots[0]))'''
 
 # Return a root nonterminal and defaultdict(list) of nonterminals mapped to
 # lists of productions for the given spec string.
@@ -339,6 +364,29 @@ def get_tree(rules, tokens, root):
         rhs.append(get_tree(rules, tokens, child))
     return (root.nt, rhs)
 
+# Return the given parse tree after normalization. A normalized tree contains
+# none of the nonterminals in clist and all and only the terminals in tlist.
+def normalize_tree(tlist, clist, root):
+    def rec(root):
+        if not root: return []
+        lhs, rhs = root
+        if type(rhs) == list:       # Nonterminal
+            res_rhs = []
+            rhs = [rec(t) for t in rhs]
+            rhs = [item for sublist in rhs for item in sublist]
+            for t in rhs:
+                if type(t) == list: res_rhs.extend(t)
+                else: res_rhs.append(t)
+            if lhs in clist:        # Contracted nonterminal
+                return [res_rhs]
+            else:                   # Uncontracted nonterminal
+                return [(lhs, res_rhs)]
+        elif lhs in tlist:          # Preserved terminal
+                return [(lhs, rhs)]
+        else:                       # Unpreserved terminal
+            return []
+    return rec(root)[0]
+
 # Pretty print the parse tree, with subsequent levels indented to show nesting.
 def print_tree(root):
     def rec(root, level):
@@ -402,7 +450,7 @@ def parser(root, rules):
                 print_tree(get_tree(rules, tokens, rt))
 
         # Return the valid parse tree
-        return get_tree(rules, tokens, roots[0])
+        return normalize_tree(tlist, clist, get_tree(rules, tokens, roots[0]))
 
     # Return parser function
     return parse

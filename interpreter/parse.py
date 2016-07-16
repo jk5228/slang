@@ -3,8 +3,8 @@
 from collections import defaultdict, OrderedDict
 root = 'prog'
 tlist = ['num','str','id','+','-','*','/','!','&&','||','==','<','>']
-clist = ['stm+','id+','exp+']
-rules = defaultdict(list, {'forBlk':[['for','(','id','in','exp',')','{','stm*','}']],'arrAcc':[['id','[','exp',']']],'id*':[[],['id+']],'funBlk':[['def','id','(','id*',')','{','stm*','}']],'lOp1':[['!']],'line':[['funExp'],['assign'],['break'],['return'],['return','exp']],'funExp':[['id','(','exp*',')']],'block':[['funBlk'],['ifBlk'],['whileBlk'],['forBlk']],'prim':[['num'],['str'],['id']],'stm+':[['stm'],['stm','stm*']],'prog':[['stm*']],'stm':[['line',';'],['block']],'stm*':[[],['stm+']],'ifBlk':[['if','(','exp',')','{','stm*','}','else','{','stm*','}']],'whileBlk':[['while','(','exp',')','{','stm*','}']],'aOp2':[['+'],['-'],['*'],['/']],'arithExp':[['(','exp',')','aOp2','exp']],'exp':[['(','exp',')'],['prim'],['arrAcc'],['funExp'],['arrExp'],['arithExp'],['logExp']],'exp+':[['exp'],['exp',',','exp+']],'logExp':[['lOp1','exp'],['(','exp',')','l2op','exp']],'lOp2':[['&&'],['||'],['=='],['>'],['<']],'exp*':[[],['exp+']],'arrExp':[['{','exp*','}']],'id+':[['id'],['id',',','id+']],'assign':[['id','=','exp'],['arrAcc','=','exp']]})
+clist = ['stm+','line','block','id+','exp+']
+rules = defaultdict(list, {'forBlk':[['for','(','id','in','exp',')','{','stm*','}']],'block':[['funBlk'],['ifBlk'],['whileBlk'],['forBlk']],'exp*':[[],['exp+']],'stm*':[[],['stm+']],'prim':[['num'],['str'],['id']],'stm':[['line',';'],['block']],'lOp1':[['!']],'arithExp':[['(','exp',')','aOp2','exp']],'logExp':[['lOp1','exp'],['(','exp',')','l2op','exp']],'whileBlk':[['while','(','exp',')','{','stm*','}']],'funBlk':[['def','id','(','id*',')','{','stm*','}']],'ifBlk':[['if','(','exp',')','{','stm*','}','else','{','stm*','}']],'funExp':[['id','(','exp*',')']],'arrExp':[['{','exp*','}']],'prog':[['stm*']],'arrAcc':[['id','[','exp',']']],'assign':[['id','=','exp'],['arrAcc','=','exp']],'id+':[['id'],['id',',','id+']],'exp+':[['exp'],['exp',',','exp+']],'lOp2':[['&&'],['||'],['=='],['>'],['<']],'id*':[[],['id+']],'stm+':[['stm'],['stm','stm*']],'exp':[['(','exp',')'],['prim'],['arrAcc'],['funExp'],['arrExp'],['arithExp'],['logExp']],'line':[['funExp'],['assign'],['break'],['return'],['return','exp']],'aOp2':[['+'],['-'],['*'],['/']]})
 
 # An entry object in an Earley parse chart. Children is the pointer to the
 # children entries in the parse tree.
@@ -78,12 +78,35 @@ def get_tree(rules, tokens, root):
         rhs.append(get_tree(rules, tokens, child))
     return (root.nt, rhs)
 
+# Return the given parse tree after normalization. A normalized tree contains
+# none of the nonterminals in clist and all and only the terminals in tlist.
+def normalize_tree(tlist, clist, root):
+    def rec(root):
+        if not root: return []
+        lhs, rhs = root
+        if type(rhs) == list:       # Nonterminal
+            res_rhs = []
+            rhs = [rec(t) for t in rhs]
+            rhs = [item for sublist in rhs for item in sublist]
+            for t in rhs:
+                if type(t) == list: res_rhs.extend(t)
+                else: res_rhs.append(t)
+            if lhs in clist:        # Contracted nonterminal
+                return [res_rhs]
+            else:                   # Uncontracted nonterminal
+                return [(lhs, res_rhs)]
+        elif lhs in tlist:          # Preserved terminal
+                return [(lhs, rhs)]
+        else:                       # Unpreserved terminal
+            return []
+    return rec(root)[0]
+
 # Pretty print the parse tree, with subsequent levels indented to show nesting.
 def print_tree(root):
     def rec(root, level):
         if not root: return
         lhs, rhs = root
-        print('%s%s' % ('| '*level, lhs), end='')
+        print(('%s%s' % ('| '*level, lhs)), end='')
         if type(rhs) == list:
             print()
             for term in rhs:
@@ -117,6 +140,7 @@ def parse(tokens):
             # print('children: %s' % [c.id() for c in e.children])
             if not e.completed():       # Uncompleted
                 if rules[e.next()]:     # Nonterminal
+                    # print('pred')
                     predict(rules, i, col, e)
                 else:                   # Terminal
                     # print('scan')
@@ -135,4 +159,4 @@ def parse(tokens):
             print_tree(get_tree(rules, tokens, rt))
 
     # Return the valid parse tree
-    return get_tree(rules, tokens, roots[0])
+    return normalize_tree(tlist, clist, get_tree(rules, tokens, roots[0]))
