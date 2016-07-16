@@ -88,90 +88,6 @@ def call(envs, f, args):
     envs.pop()
     return res
 
-# Return a list of tokens for the given program string.
-def tokenize(p):
-    tokens = []
-    i = 0
-    while i < len(p):
-        c1 = p[i]
-        c2 = p[i+1] if i+1 < len(p) else None
-        if c1 in ws or c1 == ',':
-            i += 1
-        elif c1 == '#':
-            while p[i] != '\n':
-                i += 1
-        elif c1 in '()[]}{!><+*/':
-            tokens.append(c1)
-            i += 1
-        elif c1 == '=' and c2 != '=' or c1 == '-' and c2 not in digits:
-            tokens.append(c1)
-            i += 1
-        elif c1+c2 == '&&' or c1+c2 == '||' or c1+c2 == '==':
-            tokens.append(c1+c2)
-            i += 2
-        elif c1 in letters:
-            word_start = i
-            word_end = i + 1
-            while p[word_end] in letters:
-                word_end += 1
-            tokens.append(p[word_start:word_end])
-            i = word_end
-        elif c1 == '-' or c1 in digits:
-            num_start = i
-            num_end = i + 1
-            while p[num_end] in digits:
-                num_end += 1
-            tokens.append(number(int(p[num_start:num_end])))
-            i = num_end
-        elif c1 == '"':
-            str_start = i + 1
-            str_end = str_start
-            while p[str_end] != '"':
-                str_end += 1
-            tokens.append(string(p[str_start:str_end]))
-            i = str_end + 1
-    return tokens
-
-# Return a tree (list) representing the program statements.
-def parse(tokens):
-    stack = []
-    tokens = deque(tokens)
-    # print('stack: ' + str(stack))
-    # print('tokens: ' + str(tokens))
-    while len(tokens) > 0:
-        token = tokens.popleft()
-        # print('stack: ' + str(stack))
-        # print('tokens: ' + str(tokens))
-        # print('token: ' + str(token))
-        if token == ')':
-            lst = deque()
-            while stack[-1] != '(':
-                item = stack.pop()
-                # print('adding ' + str(item) + ' to lst')
-                lst.appendleft(item)
-            stack.pop()
-            stack.append(list(lst))
-        elif token == ']':
-            lst = deque()
-            while stack[-1] != '[':
-                item = stack.pop()
-                # print('adding ' + str(item) + ' to lst')
-                lst.appendleft(item)
-            stack.pop()
-            stack.append(list(lst))
-        elif token == '}':
-            lst = deque()
-            while stack[-1] != '{':
-                item = stack.pop()
-                # print('adding ' + str(item) + ' to lst')
-                lst.appendleft(item)
-            stack.pop()
-            stack.append(array(list(lst)))
-        else:
-            stack.append(token)
-    # print(stack)
-    return stack.pop()
-
 # Return the value of the expression.
 def evaluate(envs, exp):
     # print('evaluating expression ' + str(exp))
@@ -234,7 +150,6 @@ def evaluate(envs, exp):
                 raise ArithmeticError('Cannot divide by 0.')
         else:
             raise SyntaxError('Cannot evaluate expression "' + str(exp) + '".')
-
 
 # Execute the statements in the given list.
 def execute(envs, stms):
