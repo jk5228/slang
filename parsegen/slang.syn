@@ -14,7 +14,7 @@ stm+     < stm
          | stm stm*
 stm      : line ;
          | block
-line     < funExp
+line     < exp
          | assign
          | break
          | return
