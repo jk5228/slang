@@ -63,7 +63,7 @@ def tokenize(prog):
                 linefrag = prog[:prog.index('\\n')]
             except ValueError:
                 linefrag = prog
-            raise SyntaxError('line %d: unexpected sequence "%s"'
+            raise SyntaxError('line %d: unexpected sequence "%s".'
                               % (linecount, linefrag))
 
     return tokens'''
@@ -151,7 +151,7 @@ def tokenizer(spec):
                     linefrag = prog[:prog.index('\n')]
                 except ValueError:
                     linefrag = prog
-                raise SyntaxError('line %d: unexpected sequence "%s"'
+                raise SyntaxError('line %d: unexpected sequence "%s".'
                                   % (linecount, linefrag))
 
         return tokens

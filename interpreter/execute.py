@@ -1,14 +1,5 @@
-# The Slang interpreter                                     Jason Kim, 7/15/2016
-# The Slang interpreter takes a program tree and executes it.
-
-# Globals
-
-global_env = {
-    'print': built_in_func(s_print),
-    'range': built_in_func(s_range),
-    'size': built_in_func(s_size),
-    'array': built_in_func(s_array)
-}
+# The Slang executor                                        Jason Kim, 7/15/2016
+# The Slang executor takes a list of Slang statements and executes them.
 
 # Types
 
@@ -56,24 +47,6 @@ class built_in_func(object):
     def __repr__(self):
         return 'built_in_func(%s)' % (str(self.value))
 
-# Built-in functions
-
-# Print the given value.
-def s_print(value):
-    print(str(value))
-
-# Return the array of integers in the interval [lo, hi).
-def s_range(lo, hi):
-    return array([number(i) for i in range(lo, hi)])
-
-# Return the size of the array.
-def s_size(arr):
-    return number(len(arr))
-
-# Return an array with the given length, initialized to zeros.
-def s_array(n):
-    return array([0 for i in range(n)])
-
 # Slang core
 
 # Return the nearest value assigned to the variable name. If the name is
@@ -82,7 +55,7 @@ def find(envs, name):
     for env in envs[::-1]:
         if name in env:
             return env[name]
-    raise NameError('Name "' + str(name) + '" is not defined.')
+    raise NameError('name "' + str(name) + '" is not defined.')
 
 # Bind the variable name to the given value. If the variable is defined in an
 # environment, reassign its value. Otherwise, create a new binding in the local

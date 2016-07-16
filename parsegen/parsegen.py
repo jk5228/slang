@@ -31,8 +31,7 @@
 # the grammar. The separator ":" denotes a nonterminal that will be kept
 # around in the generated parse tree. The other separator "<" denotes a
 # nonterminal that will be contracted from the parse tree (i.e., it's children
-# become the children of the parent of the contracted nonterminal node). The
-# root nonterminal cannot be contracted.
+# become the children of the parent of the contracted nonterminal node).
 
 import re
 from collections import defaultdict, OrderedDict
@@ -167,7 +166,7 @@ def parse(tokens):
     # Fill chart
     for (i, col) in enumerate(cols):
         if not len(col):
-            raise SyntaxError('unexpected token "%s"' % tokens[i][1])       # TODO: line number for errors
+            raise SyntaxError('unexpected token "%s".' % tokens[i][1])       # TODO: line number for errors
 
         # if i > 30: return
         # l, r = tokens[i] if i < len(tokens) else ('','')
@@ -194,7 +193,7 @@ def parse(tokens):
     # Verify that there was a valid parse
     roots = [e for e in cols[-1].values() if e.nt == root and e.origin == 0 and e.completed()]
     if len(roots) != 1:                 # TODO: b/c of OrderedDict is a set, we'll never get multiple valid parses in last col
-        raise SyntaxError('expected 1 valid parse but got ' + str(len(roots)))
+        raise SyntaxError('expected 1 valid parse but got %s.' % str(len(roots)))
         for rt in roots:              # Print valid parse trees for tokens
             print_tree(get_tree(rules, tokens, rt))
 
@@ -267,7 +266,7 @@ def parse_spec(spec):
         # Verify that production isn't empty and doesn't end with '|'
         if not len(terms[2:]) or terms[-1] == '|':
             raise SyntaxError('cannot have empty production without explicit "EMPTY"' +
-                              ' but got production rule "%s"' % (' '.join(terms)))
+                              ' but got production rule "%s".' % (' '.join(terms)))
 
         # print('nt, ts: %s, %s' % (nonterm, str(terms)))
 
@@ -280,7 +279,7 @@ def parse_spec(spec):
                     empty = False
                 else:
                     raise SyntaxError('cannot have empty production without explicit "EMPTY"' +
-                                      ' but got production rule "%s"' % (' '.join(terms)))
+                                      ' but got production rule "%s".' % (' '.join(terms)))
             elif term == 'EMPTY':
                     empty = True
             else:
@@ -418,7 +417,7 @@ def parser(root, rules):
         # Fill chart
         for (i, col) in enumerate(cols):
             if not len(col):
-                raise SyntaxError('unexpected token "%s"' % tokens[i][1])       # TODO: line number for errors
+                raise SyntaxError('unexpected token "%s".' % tokens[i][1])       # TODO: line number for errors
 
             # if i > 30: return
             # l, r = tokens[i] if i < len(tokens) else ('','')
@@ -445,7 +444,7 @@ def parser(root, rules):
         # Verify that there was a valid parse
         roots = [e for e in cols[-1].values() if e.nt == root and e.origin == 0 and e.completed()]
         if len(roots) != 1:                 # TODO: b/c of OrderedDict is a set, we'll never get multiple valid parses in last col
-            raise SyntaxError('expected 1 valid parse but got ' + str(len(roots)))
+            raise SyntaxError('expected 1 valid parse but got %d.' % str(len(roots)))
             for rt in roots:              # Print valid parse trees for tokens
                 print_tree(get_tree(rules, tokens, rt))
 

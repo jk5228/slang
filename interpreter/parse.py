@@ -3,8 +3,8 @@
 from collections import defaultdict, OrderedDict
 root = 'prog'
 tlist = ['num','str','id','+','-','*','/','!','&&','||','==','<','>']
-clist = ['stm+','line','block','id+','exp+']
-rules = defaultdict(list, {'forBlk':[['for','(','id','in','exp',')','{','stm*','}']],'block':[['funBlk'],['ifBlk'],['whileBlk'],['forBlk']],'exp*':[[],['exp+']],'stm*':[[],['stm+']],'prim':[['num'],['str'],['id']],'stm':[['line',';'],['block']],'lOp1':[['!']],'arithExp':[['(','exp',')','aOp2','exp']],'logExp':[['lOp1','exp'],['(','exp',')','l2op','exp']],'whileBlk':[['while','(','exp',')','{','stm*','}']],'funBlk':[['def','id','(','id*',')','{','stm*','}']],'ifBlk':[['if','(','exp',')','{','stm*','}','else','{','stm*','}']],'funExp':[['id','(','exp*',')']],'arrExp':[['{','exp*','}']],'prog':[['stm*']],'arrAcc':[['id','[','exp',']']],'assign':[['id','=','exp'],['arrAcc','=','exp']],'id+':[['id'],['id',',','id+']],'exp+':[['exp'],['exp',',','exp+']],'lOp2':[['&&'],['||'],['=='],['>'],['<']],'id*':[[],['id+']],'stm+':[['stm'],['stm','stm*']],'exp':[['(','exp',')'],['prim'],['arrAcc'],['funExp'],['arrExp'],['arithExp'],['logExp']],'line':[['funExp'],['assign'],['break'],['return'],['return','exp']],'aOp2':[['+'],['-'],['*'],['/']]})
+clist = ['stm*','stm+','line','block','id*','id+','exp*','exp+']
+rules = defaultdict(list, {'id*':[[],['id+']],'exp':[['(','exp',')'],['prim'],['arrAcc'],['funExp'],['arrExp'],['arithExp'],['logExp']],'exp+':[['exp'],['exp',',','exp+']],'stmLst':[['stm*']],'ifBlk':[['if','(','exp',')','{','stmLst','}','else','{','stmLst','}']],'expLst':[['exp*']],'assign':[['id','=','exp'],['arrAcc','=','exp']],'aOp2':[['+'],['-'],['*'],['/']],'prim':[['num'],['str'],['id']],'stm+':[['stm'],['stm','stm*']],'idLst':[['id*']],'whileBlk':[['while','(','exp',')','{','stmLst','}']],'forBlk':[['for','(','id','in','exp',')','{','stmLst','}']],'arithExp':[['(','exp',')','aOp2','exp']],'funExp':[['id','(','expLst',')']],'block':[['funBlk'],['ifBlk'],['whileBlk'],['forBlk']],'arrAcc':[['id','[','exp',']']],'funBlk':[['def','id','(','idLst',')','{','stmLst','}']],'lOp1':[['!']],'logExp':[['lOp1','exp'],['(','exp',')','l2op','exp']],'lOp2':[['&&'],['||'],['=='],['>'],['<']],'id+':[['id'],['id',',','id+']],'prog':[['stm*']],'stm':[['line',';'],['block']],'arrExp':[['{','expLst','}']],'line':[['funExp'],['assign'],['break'],['return'],['return','exp']],'exp*':[[],['exp+']],'stm*':[[],['stm+']]})
 
 # An entry object in an Earley parse chart. Children is the pointer to the
 # children entries in the parse tree.
@@ -127,7 +127,7 @@ def parse(tokens):
     # Fill chart
     for (i, col) in enumerate(cols):
         if not len(col):
-            raise SyntaxError('unexpected token "%s"' % tokens[i][1])       # TODO: line number for errors
+            raise SyntaxError('unexpected token "%s".' % tokens[i][1])       # TODO: line number for errors
 
         # if i > 30: return
         # l, r = tokens[i] if i < len(tokens) else ('','')
@@ -154,7 +154,7 @@ def parse(tokens):
     # Verify that there was a valid parse
     roots = [e for e in cols[-1].values() if e.nt == root and e.origin == 0 and e.completed()]
     if len(roots) != 1:                 # TODO: b/c of OrderedDict is a set, we'll never get multiple valid parses in last col
-        raise SyntaxError('expected 1 valid parse but got ' + str(len(roots)))
+        raise SyntaxError('expected 1 valid parse but got %s.' % str(len(roots)))
         for rt in roots:              # Print valid parse trees for tokens
             print_tree(get_tree(rules, tokens, rt))
 

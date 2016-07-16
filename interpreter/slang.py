@@ -40,18 +40,18 @@
 from collections import deque
 import parse
 import tokenize
-# import interpret
+import env
+import execute
 
 # Run the program string.
 def run(p):
     tokens = tokenize.tokenize(p)           # Tokenize
     # print(tokens)
     tree = parse.parse(tokens)              # Parse
-    parse.print_tree(tree)
-
-    # envs = [global_env]         # Create environment stack
-    # print(stms)
-    # execute(envs, stms)         # Execute
+    # parse.print_tree(tree)
+    stms = tree[1]
+    envs = [env.env]                        # Create environment stack
+    execute.execute(envs, stms)             # Execute
 
 # Run Slang as a script.
 if __name__ == "__main__":
