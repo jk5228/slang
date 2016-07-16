@@ -40,16 +40,14 @@
 from collections import deque
 import parse
 import tokenize
-# import normalize
 # import interpret
 
 # Run the program string.
 def run(p):
     tokens = tokenize.tokenize(p)           # Tokenize
-    print(tokens)
-    ir_tree = parse.parse(tokens)           # Parse
-    print(ir_tree)
-    # tree = normalize.normalize(ir_tree)     # Normalize IR tree
+    # print(tokens)
+    tree = parse.parse(tokens)              # Parse
+    # print(tree)
 
     # envs = [global_env]         # Create environment stack
     # print(stms)

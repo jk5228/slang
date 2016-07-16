@@ -7,18 +7,31 @@
 # parse "tree" (a list of lists) representing the parsed program.
 # 
 # The .syn format:
-# A grammar is a list of one or more production rules. A production rule has the
-# format
+# A grammar is a list of one or more production rules, as well as an optional
+# first line listing terminal symbols to preserve in the parse tree. This line
+# should have the format
 #
-#       nonterminal : [ "EMPTY" | nonterminal | terminal ] +
-#               [ "|" [ "EMPTY" | nonterminal | terminal ] + ] +
+#       : [ terminal ] *
+#
+# where "terminal" is a terminal symbol.
+#
+# A production rule
+# has the format
+#
+#       nonterminal [ : | < ] [ "EMPTY" | nonterminal | terminal ] +
+#                       [ "|" [ "EMPTY" | nonterminal | terminal ] + ] +
 #
 # where "nonterminal" is a nonterminal symbol, "EMPTY" generates no production
 # (i.e., epsilon), and "terminal" is a terminal symbol. Production rules may
 # be written on a single line or on multiple lines, with all lines after the
-# first beginning with "|". Whitespace in a .syn file is ignored. Lines in the
-# spec beginning with "#" are ignored. The first nonterminal specified is
-# considered the root nonterminal of the grammar.
+# first beginning with "|".
+#
+# Whitespace in a .syn file is ignored. Lines in the spec beginning with "#" are
+# ignored. The first nonterminal specified is considered the root nonterminal of
+# the grammar. The separator ":" denotes a nonterminal that should be kept
+# around in the generated parse tree. The other separator "<" denotes a
+# nonterminal that should be contracted from the parse tree (i.e., it's children
+# become the children of the parent of the contracted nonterminal node).
 
 import re
 from collections import defaultdict, OrderedDict
@@ -28,7 +41,9 @@ parseprog = '''# A parser generated from parsegen.py.
 
 from collections import defaultdict, OrderedDict
 root = '{0}'
-rules = defaultdict(list, {{{1}}})
+tlist = [{1}]
+clist = [{2}]
+rules = defaultdict(list, {{{3}}})
 
 # An entry object in an Earley parse chart. Children is the pointer to the
 # children entries in the parse tree.
@@ -166,8 +181,11 @@ def parse(tokens):
 def parse_spec(spec):
     lines = spec.split('\n')
     rules = defaultdict(list)
+    tlist = []
+    clist = []
     ident = re.compile('\w+')
     root = None
+    checked_tlst = False
     i = 0
 
     # Process lines
@@ -183,15 +201,27 @@ def parse_spec(spec):
             i += 1
             continue
 
+        # Check for terminal list
+        if not checked_tlst:
+            checked_tlst = True
+            if len(terms) and terms[0] == ':':
+                tlist = terms[1:]
+                i += 1
+                continue
+
         # Validate format
-        if not re.match(ident, terms[0]) or len(terms) == 1 or terms[1] != ':':
-            raise SyntaxError('expected format "nonterminal : production" or' +
+        if not re.match(ident, terms[0]) or len(terms) == 1 or terms[1] not in ':<':
+            raise SyntaxError('expected format "nonterminal [:|<] production" or' +
                               ' "| production" but instead got production rule "%s".' % (line))
 
         nonterm = terms[0]
         prod = []
         empty = False
         i += 1
+
+        # Add any contracted nonterminals to the list
+        if terms[1] == '<':
+            clist.append(nonterm)
 
         # Get root nonterminal
         if not root:
@@ -234,7 +264,7 @@ def parse_spec(spec):
         # Add last production (we know we don't have an implicit empty)
         rules[nonterm].append(prod)
 
-    return (root, rules)
+    return (root, tlist, clist, rules)
 
 
 # An entry object in an Earley parse chart. Children is the pointer to the
@@ -380,7 +410,9 @@ def parser(root, rules):
 # Create a parser Python program file at the given path, based on the given spec
 # string.
 def parse_file(path, spec):
-    root, rules = parse_spec(spec)
+    root, tlist, clist, rules = parse_spec(spec)
+    tlist = ['\'%s\'' % t for t in tlist]
+    clist = ['\'%s\'' % c for c in clist]
     rule_lst = []
 
     # Convert rules dict to strings
@@ -393,7 +425,7 @@ def parse_file(path, spec):
 
     # Write file
     f = open(path, 'w')
-    f.write(parseprog.format(root, ','.join(rule_lst)))
+    f.write(parseprog.format(root, ','.join(tlist), ','.join(clist), ','.join(rule_lst)))
     f.close()
 
 # # Test code

@@ -4,10 +4,12 @@
 
 # Production rules
 
+: num str id + - * / ! && || == < >
+
 prog     : stm*
 stm*     : EMPTY
          | stm+
-stm+     : stm
+stm+     < stm
          | stm stm*
 stm      : line ;
          | block
@@ -28,7 +30,7 @@ whileBlk : while ( exp ) { stm* }
 forBlk   : for ( id in exp ) { stm* }
 id*      : EMPTY
          | id+
-id+      : id
+id+      < id
          | id , id+
 exp      : ( exp )
          | prim
@@ -43,7 +45,7 @@ prim     : num
 arrExp   : { exp* }
 exp*     : EMPTY
          | exp+
-exp+     : exp
+exp+     < exp
          | exp , exp+
 arrAcc   : id [ exp ]
 funExp   : id ( exp* )
