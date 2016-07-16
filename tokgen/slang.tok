@@ -11,6 +11,7 @@
 ;      = ;
 ,      = ,
 def    = def
+break  = break
 return = return
 if     = if
 while  = while

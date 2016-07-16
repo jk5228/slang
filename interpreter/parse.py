@@ -2,7 +2,7 @@
 
 from collections import defaultdict, OrderedDict
 root = 'prog'
-rules = {'funExp':[['id','(','exp*',')']],'forBlk':[['for','(','id','in','exp',')','{','stm*','}']],'assign':[['id','=','exp'],['arrAcc','=','exp']],'line':[['funExp'],['assign'],['break'],['return'],['return','exp']],'exp*':[[],['exp+']],'funBlk':[['def','id','(','id*',')','{','stm*','}']],'arrExp':[['{','exp*','}']],'lOp1':[['!']],'whileBlk':[['while','(','exp',')','{','stm*','}']],'stm':[['line',';'],['block']],'lOp2':[['&&'],['||'],['=='],['>'],['<']],'arrAcc':[['id','[','exp',']']],'prog':[['stm*']],'aOp2':[['+'],['-'],['*'],['/']],'stm*':[[],['stm+']],'logExp':[['lOp1','exp'],['(','exp',')','l2op','exp']],'block':[['funBlk'],['ifBlk'],['whileBlk'],['forBlk']],'exp+':[['exp'],['exp',',','exp+']],'exp':[['(','exp',')'],['prim'],['arrAcc'],['funExp'],['arrExp'],['arithExp'],['logExp']],'ifBlk':[['if','(','exp',')','{','stm*','}','else','{','stm*','}']],'arithExp':[['(','exp',')','aOp2','exp']],'prim':[['num'],['str'],['id']],'id+':[['id'],['id',',','id+']],'id*':[[],['id+']],'stm+':[['stm'],['stm','stm*']]}
+rules = defaultdict(list, {'stm':[['line',';'],['block']],'aOp2':[['+'],['-'],['*'],['/']],'exp+':[['exp'],['exp',',','exp+']],'id+':[['id'],['id',',','id+']],'forBlk':[['for','(','id','in','exp',')','{','stm*','}']],'arrAcc':[['id','[','exp',']']],'stm+':[['stm'],['stm','stm*']],'logExp':[['lOp1','exp'],['(','exp',')','l2op','exp']],'exp':[['(','exp',')'],['prim'],['arrAcc'],['funExp'],['arrExp'],['arithExp'],['logExp']],'exp*':[[],['exp+']],'funExp':[['id','(','exp*',')']],'lOp1':[['!']],'stm*':[[],['stm+']],'ifBlk':[['if','(','exp',')','{','stm*','}','else','{','stm*','}']],'id*':[[],['id+']],'arithExp':[['(','exp',')','aOp2','exp']],'line':[['funExp'],['assign'],['break'],['return'],['return','exp']],'whileBlk':[['while','(','exp',')','{','stm*','}']],'prim':[['num'],['str'],['id']],'block':[['funBlk'],['ifBlk'],['whileBlk'],['forBlk']],'lOp2':[['&&'],['||'],['=='],['>'],['<']],'assign':[['id','=','exp'],['arrAcc','=','exp']],'funBlk':[['def','id','(','id*',')','{','stm*','}']],'arrExp':[['{','exp*','}']],'prog':[['stm*']]})
 
 # An entry object in an Earley parse chart. Children is the pointer to the
 # children entries in the parse tree.
@@ -17,7 +17,7 @@ class entry(object):
 
     # Return a string id unique for each (nt, prod, origin) triple.
     def id(self):
-        return '%s:%s:%s:%s'.format(self.nt, self.prod, self.origin, self.dot)
+        return '%s:%s:%s:%s' % (self.nt, self.prod, self.origin, self.dot)
 
     # Return whether the production is completed.
     def completed(self):
@@ -52,7 +52,7 @@ def scan(token, i, col, e):
 # Add the completed entry to the given column.
 def complete(rules, cols, col, e):
     # print(col.values())
-    for cand in cols[e.origin].values():
+    for cand in list(cols[e.origin].values()):
         # print('CAND: [%s] %s -> %s (%d, %d)' % (e.type, e.nt, e.prod, e.origin, e.dot))
         # print(cand.id())
         if not cand.completed() and rules[cand.next()] and cand.next() == e.nt:
@@ -70,7 +70,7 @@ def get_tree(rules, tokens, root):
     if type(root) != entry: return root
     rhs = []
     children = iter(root.children)
-    print(root.children)
+    # print(root.children)
     # print('%s: %s' % (root.nt, [e.id() for e in root.children]))
     for child in root.children:
         rhs.append(get_tree(rules, tokens, child))
@@ -91,7 +91,7 @@ def print_tree(root):
     rec(root, 0)
 
 # The Earley parser function
-def parsefun(tokens):
+def parse(tokens):
 
     # Initialize chart
     cols = [OrderedDict() for i in range(len(tokens)+1)]
@@ -105,10 +105,12 @@ def parsefun(tokens):
             raise SyntaxError('unexpected token "%s"' % tokens[i][1])       # TODO: line number for errors
 
         # if i > 30: return
-        l, r = tokens[i] if i < len(tokens) else ('','')
+        # l, r = tokens[i] if i < len(tokens) else ('','')
         # print('=== col %d : %s %s ===' % (i, l, r))
 
-        for e in col.values():
+        j = 0
+        while j < len(col):
+            e = list(col.values())[j]
             # print('entry: [%s] %s -> %s (%d, %d)' % (e.type, e.nt, e.prod, e.origin, e.dot))
             # print('children: %s' % [c.id() for c in e.children])
             if not e.completed():       # Uncompleted
@@ -121,6 +123,7 @@ def parsefun(tokens):
             else:                       # Completed
                 # print('comp')
                 complete(rules, cols, col, e)
+            j += 1
 
     # Verify that there was a valid parse
     roots = [e for e in cols[-1].values() if e.nt == root and e.origin == 0 and e.completed()]

@@ -31,7 +31,7 @@ ws = re.compile('\s+')
 pairs = [{0}]
 
 # Return a list of label-token pairs given a program string.
-def tokfun(prog):
+def tokenize(prog):
     tokens = []
     linecount = 1
 
@@ -119,7 +119,7 @@ def tokenizer(spec):
     ws = re.compile('\s+')
     pairs = get_pairs(parse_spec(spec))
 
-    def tokfun(prog):
+    def tokenize(prog):
         tokens = []
         linecount = 1
 
@@ -156,7 +156,7 @@ def tokenizer(spec):
 
         return tokens
 
-    return tokfun
+    return tokenize
 
 # Create a tokenizer Python program file at the given path, based on the given
 # spec string.
@@ -193,4 +193,4 @@ if __name__ == "__main__":
     from sys import argv
     fpath = argv[1]
     spec = open(argv[2], 'r').read()
-    tokfile(fpath, spec)
+    tok_file(fpath, spec)

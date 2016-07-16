@@ -4,10 +4,10 @@ import re
 from itertools import chain
 
 ws = re.compile('\s+')
-pairs = [('}', re.compile(re.escape('}'))), ('||', re.compile(re.escape('||'))), ('{', re.compile(re.escape('{'))), ('while', re.compile(re.escape('while'))), ('return', re.compile(re.escape('return'))), ('in', re.compile(re.escape('in'))), ('if', re.compile(re.escape('if'))), ('for', re.compile(re.escape('for'))), ('def', re.compile(re.escape('def'))), (']', re.compile(re.escape(']'))), ('[', re.compile(re.escape('['))), ('>', re.compile(re.escape('>'))), ('==', re.compile(re.escape('=='))), ('=', re.compile(re.escape('='))), ('<', re.compile(re.escape('<'))), (';', re.compile(re.escape(';'))), ('/', re.compile(re.escape('/'))), ('-', re.compile(re.escape('-'))), (',', re.compile(re.escape(','))), ('+', re.compile(re.escape('+'))), ('*', re.compile(re.escape('*'))), (')', re.compile(re.escape(')'))), ('(', re.compile(re.escape('('))), ('&&', re.compile(re.escape('&&'))), ('!', re.compile(re.escape('!'))), ('num', re.compile('-?\d+')), ('id', re.compile('[A-Za-z]+')), ('str', re.compile('"[^"]*"'))]
+pairs = [('}', re.compile(re.escape('}'))),('||', re.compile(re.escape('||'))),('{', re.compile(re.escape('{'))),('while', re.compile(re.escape('while'))),('return', re.compile(re.escape('return'))),('in', re.compile(re.escape('in'))),('if', re.compile(re.escape('if'))),('for', re.compile(re.escape('for'))),('def', re.compile(re.escape('def'))),('break', re.compile(re.escape('break'))),(']', re.compile(re.escape(']'))),('[', re.compile(re.escape('['))),('>', re.compile(re.escape('>'))),('==', re.compile(re.escape('=='))),('=', re.compile(re.escape('='))),('<', re.compile(re.escape('<'))),(';', re.compile(re.escape(';'))),('/', re.compile(re.escape('/'))),('-', re.compile(re.escape('-'))),(',', re.compile(re.escape(','))),('+', re.compile(re.escape('+'))),('*', re.compile(re.escape('*'))),(')', re.compile(re.escape(')'))),('(', re.compile(re.escape('('))),('&&', re.compile(re.escape('&&'))),('!', re.compile(re.escape('!'))),('num', re.compile('-?\d+')),('str', re.compile('"[^"]*"')),('id', re.compile('[A-Za-z]+'))]
 
 # Return a list of label-token pairs given a program string.
-def tokfun(prog):
+def tokenize(prog):
     tokens = []
     linecount = 1
 
