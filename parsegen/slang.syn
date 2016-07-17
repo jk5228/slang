@@ -4,7 +4,7 @@
 
 # Production rules
 
-: num str id + - * / % ! && || == < > break
+: num str id + - * / % ! && || == <= >= < > break
 
 prog     : stm*
 stmLst   : stm*
@@ -60,10 +60,12 @@ aOp2     : +
          | /
          | %
 logExp   : lOp1 exp
-         | ( exp ) l2op exp
+         | ( exp ) lOp2 exp
 lOp1     : !
 lOp2     : &&
          | ||
          | ==
+         | <=
+         | >=
          | >
          | <

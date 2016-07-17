@@ -3,6 +3,7 @@
 # variables.
 
 import execute
+from collections import OrderedDict
 
 # Built-in functions
 
@@ -24,9 +25,9 @@ def s_array(n):
 
 # The global environment
 
-env = {
+env = OrderedDict({
     'print': execute.built_in_func(s_print),
     'range': execute.built_in_func(s_range),
     'size': execute.built_in_func(s_size),
     'array': execute.built_in_func(s_array)
-}
+})

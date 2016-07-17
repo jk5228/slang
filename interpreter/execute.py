@@ -90,7 +90,7 @@ def call(envs, fname, args):
     fenv = { farg: arg for (farg, arg) in zip(f.args, args) }
     # print(fenv)
     envs.append(fenv)
-    res = execute(envs, f.body)
+    res = execute_stms(envs, True, False, f.body)
     envs.pop()
     return res.res
 
@@ -240,8 +240,8 @@ def evaluate(envs, exp):
         print('-> arithExp')
         terms = subs(exp)
         left = evaluate(envs, terms[0])
-        op = sub(terms[1])
         right = evaluate(envs, terms[2])
+        op = sub(terms[1])
         print(right)
         if match(op, '+'):                  # Add
             print('-> +')
@@ -282,68 +282,38 @@ def evaluate(envs, exp):
                 raise TypeError('cannot perform operation %s %% %s' % (type(left), type(right)))
     else:                                   # Logical expression
         print('-> logExp')
-
-
-
-    return
-    if type(exp) != list:                   # Primitive
-        if type(exp) in [number, string, array]:
-            return exp
-        else:
-            return find(envs, exp)
-    elif len(exp) == 1:                     # Primitive
-        if type(exp[0]) in [number, string, array]:
-            return exp[0]
-        else:
-            return find(envs, exp[0])
-    elif exp[0] == '!':
-        return number(int(bool(unwrap(evaluate(envs, exp[1])))))
-    elif len(exp) == 2:                     # Function or array access expression
-        value = find(envs, exp[0])
-        if type(value) == array:
-            index = unwrap(evaluate(envs, exp[1]))
-            if index < 0 or index >= len(value.value):
-                raise IndexError('Cannot access index %d of array "%s".' % (index, exp[0]))
-            return value.value[index]
-        else:
-            args = [evaluate(envs, arg) for arg in exp[1]]
-            # print('calling ' + str(exp[0]) + ' on args ' + str(args))
-            return call(envs, value, args)
-    else:
-        if exp[0] == '==':
-            return number(int(unwrap(evaluate(envs, exp[1])) == unwrap(evaluate(envs, exp[2]))))
-        elif exp[0] == '&&':
-            return number(int(unwrap(evaluate(envs, exp[1])) and unwrap(evaluate(envs, exp[2]))))
-        elif exp[0] == '||':
-            return number(int(unwrap(evaluate(envs, exp[1])) or unwrap(evaluate(envs, exp[2]))))
-        elif exp[0] in '><+':
-            val1 = evaluate(envs, exp[1])
-            val2 = evaluate(envs, exp[2])
-            if exp[0] != '+' and type(val1) != type(val2) or type(val1) not in [number, string]:
-                raise TypeError('Values ' + str(val1) + ' and ' + str(val2) + ' are not comparable.')
-            if exp[0] == '>':
-                return number(int(unwrap(val1) > unwrap(val2)))
-            elif exp[0] == '<':
-                return number(int(unwrap(val1) < unwrap(val2)))
-            elif type(val1) == number:
-                return number(unwrap(val1) + unwrap(val2))
-            else:
-                return string(str(unwrap(val1)) + str(unwrap(val2)))
-        elif exp[0] in '-*/':
-            val1 = evaluate(envs, exp[1])
-            val2 = evaluate(envs, exp[2])
-            if type(val1) != type(val2) or type(val1) != number:
-                raise TypeError('Values ' + str(val1) + ' and ' + str(val2) + ' invalid for arithmetic operator.')
-            if exp[0] == '-':
-                return number(unwrap(val1) - unwrap(val2))
-            elif exp[0] == '*':
-                return number(unwrap(val1) * unwrap(val2))
-            elif exp[0] == '/' and unwrap(val2) != 0:
-                return number(unwrap(val1) / unwrap(val2))
-            else:
-                raise ArithmeticError('Cannot divide by 0.')
-        else:
-            raise SyntaxError('Cannot evaluate expression "' + str(exp) + '".')
+        terms = subs(exp)
+        print(terms)
+        if len(terms) == 3:                 # Binary expression
+            left = evaluate(envs, terms[0])
+            right = evaluate(envs, terms[2])
+            op = sub(terms[1])
+            print(op)
+            if match(op, '&&'):             # And
+                print('-> &&')
+                return number(unwrap(left) and unwrap(right))
+            elif match(op, '||'):           # Or
+                print('-> ||')
+                return number(unwrap(left) or unwrap(right))
+            elif match(op, '=='):           # Equals
+                print('-> ==')
+                return number(unwrap(left) == unwrap(right))
+            elif match(op, '<='):           # Less than or equal to
+                print('-> <=')
+                return number(unwrap(left) <= unwrap(right))
+            elif match(op, '>='):           # Greater than or equal to
+                print('-> >=')
+                return number(unwrap(left) >= unwrap(right))
+            elif match(op, '<'):            # Less than
+                print('-> <')
+                return number(unwrap(left) < unwrap(right))
+            else:                           # Greater than
+                print('-> >')
+                return number(unwrap(left) > unwrap(right))
+        else:                               # Unary expression (not)
+            print('-> !')
+            operand = evaluate(envs, terms[1])
+            return number(not unwrap(operand))
 
 # A result object.
 class result(object):
@@ -377,30 +347,34 @@ def execute_stms(envs, iscall, isloop, stms):
         elif match(stm, 'line'):            # Line
             stm = sub(stm)
             if match(stm, 'retStm'):        # Return
-                print('return')
+                print('-> retStm')
                 if not iscall: raise SyntaxError('cannot return outside of a function call.')
-                elif stm[1]:   return result.ret(evaluate(stm[1]))
+                elif stm[1]:   return result.ret(evaluate(envs, stm[1][0]))
                 else:          return result.ret(number(0))
             elif match(stm, 'break'):       # Break
-                print('break')
+                print('-> break')
                 if not isloop: raise SyntaxError('cannot break outside of a loop.')
                 else:          return result.brk(number(0))
             elif match(stm, 'exp'):         # Expression
-                print('exp')
+                print('-> exp')
                 res = evaluate(envs, stm)
         else:                               # Block
             stm = sub(stm)
             if match(stm, 'funBlk'):        # Function declaration
-                print('funBlk')
-                pass
+                print('-> funBlk')
+                terms = subs(stm)
+                fname = sub(terms[0])
+                args = [sub(t) for t in subs(terms[1])]
+                body = subs(terms[2])
+                res = bind(envs, fname, func(fname, args, body))
             elif match(stm, 'ifBlk'):       # If-else block
-                print('ifBlk')
+                print('-> ifBlk')
                 pass
             elif match(stm, 'whileBlk'):    # While block
-                print('whileBlk')
+                print('-> whileBlk')
                 pass
             else:                           # For block
-                print('forBlk')
+                print('-> forBlk')
                 pass
     return result.res(res)
 
