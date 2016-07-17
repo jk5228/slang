@@ -15,12 +15,15 @@
 # TODO:
 # - overall goal: make language I would enjoy using and resolves issues in Python
 # - robust error messages during lexing/parsing
+# - complete error-handling
 # - optional environment dump at run-time error
-# - Slang REPL
-# - IR optimizations (contracting a subset of the NTs [allow user to specify this in .syn file])
+# - implement built-in functions in Slang
+# - have well-defined interfaces with Python functions for I/O and other OS features
 # - classes
+# - flesh out built-in classes with methods
 # - lambdas
-# - ranges (a la Ruby)
+# - range syntax (a la Ruby)
+# - slice syntax (a la Python)
 # - built-in, first-class regexes
 # - Currying?
 # - optional static type-checking?
@@ -29,8 +32,6 @@
 # - include other useful built-in functions
 # - robust pattern-matching
 # - either support or disallow nested functions
-# - make parethesization and general syntax more optional/flexible (make arg lists comma-separated, remove parens around program, consider ws?)
-# - make operators infix
 
 from collections import deque
 import parse
