@@ -73,20 +73,23 @@ def unwrap(obj):
     return obj.value
 
 # Return the evaluation of the given function on its arguments.
-def call(envs, f, args):
+def call(envs, fname, args):
+    f = find(envs, fname)
     # print('calling ' + str(f))
     if type(f) == built_in_func:
         # print('built-in')
         # print('args ' + str(args))
         return f.value(*[unwrap(arg) for arg in args])
     elif type(f) != func:
-        raise TypeError('Value ' + str(f) + ' is not a function.')
+        raise TypeError('value %s : %s is not a function.' % (fname, type(f)))
+    if len(f.args) != len(args):
+        raise SyntaxError('function %s expected %d arguments but got %s.' % (fname, len(f.args), len(args)))
     fenv = { farg: arg for (farg, arg) in zip(f.args, args) }
     # print(fenv)
     envs.append(fenv)
     res = execute(envs, f.body)
     envs.pop()
-    return res
+    return res.res
 
 # # Return the value of the expression.
 # def evaluate(envs, exp):
@@ -153,12 +156,128 @@ def call(envs, f, args):
 #         else:
 #             raise SyntaxError('Cannot evaluate expression "' + str(exp) + '".')
 
+# Return the root token of the parse tree.
+def token(tree):
+    return tree[0]
+
+# Return if the root of the tree is the given token.
+def match(tree, tok):
+    return token(tree) == tok
+
+# Return the leftmost subtree of the parse tree.
+def sub(tree):
+    if type(tree[1]) == list:
+        return tree[1][0]
+    return tree[1]
+
+# Return the list of children of the given tree.
+def subs(tree):
+    if type(tree[1]) == list:
+        return tree[1]
+    return [tree[1]]
+
+# Return the number (int or float) in the given string.
+def get_num(num):
+    try:
+        return int(num)
+    except ValueError:
+        return float(num)
+
 # Return the value of the expression.
 def evaluate(envs, exp):
-    print('eval')
-    exit(0)
-    # print('evaluating expression ' + str(exp))
-    # print(str(type(exp)))
+    print('evaluating expression ' + str(exp))
+    exp = sub(exp)
+    if match(exp, 'exp'):                   # Subexpression
+        print('-> exp')
+        return evaluate(envs, exp)
+    elif match(exp, 'prim'):                # Primitive
+        print('-> prim')
+        prim = sub(exp)
+        if match(prim, 'num'):              # Number
+            return number(get_num(sub(prim)))
+        elif match(prim, 'str'):            # String
+            return string(sub(prim))
+        else:                               # Variable
+            return find(envs, sub(prim))
+    elif match(exp, 'assign'):              # Assignment
+        print('-> assign')
+        if token(sub(exp)) == 'id':
+            print('-> id')
+            var = sub(sub(exp))
+            val = evaluate(envs, subs(exp)[1])
+            bind(envs, var, val)
+            return val
+        else:
+            print('-> arrAcc')
+            arr = unwrap(find(envs, sub(sub(sub(exp)))))
+            ind = unwrap(evaluate(envs, subs(sub(exp))[1]))
+            val = evaluate(envs, subs(exp)[1])
+            arr[ind] = val
+            return val
+    elif match(exp, 'arrAcc'):              # Array access
+        print('-> arrAcc')
+        acc = sub(exp)
+        arr = unwrap(find(envs, sub(sub(acc))))
+        ind = unwrap(evaluate(envs, subs(acc)[1]))
+        if index < 0 or index >= len(arr):
+            raise IndexError('Cannot access index %d of array "%s".' % (ind, sub(sub(acc))))
+        return arr[ind]
+    elif match(exp, 'funExp'):              # Function call
+        print('-> funExp')
+        funExp = sub(exp)
+        fname = sub(sub(funExp))
+        args = [evaluate(envs, arg) for arg in sub(subs(exp)[1])]
+        return call(envs, fname, args)
+    elif match(exp, 'arrExp'):              # Array expression
+        print('-> arrExp')
+        expLst = subs(sub(exp))
+        exps = [evaluate(envs, exp) for exp in expLst]
+        return array(exps)
+    elif match(exp, 'arithExp'):            # Arithmetic expression
+        print('-> arithExp')
+        arithExp = sub(exp)
+        terms = subs(arithExp)
+        left = evaluate(envs, terms[0])
+        op = terms[1]
+        right = evaluate(envs, terms[2])
+        if match(op, '+'):                  # Add
+            if string in (type(left), type(right)):
+                return string(str(unwrap(left)) + str(unwrap(right)))
+            elif type(left) == number and type(right) == number:
+                return number(unwrap(left) + unwrap(right))
+            elif type(left) == array and type(right) == array:
+                return array(unwrap(left) + unwrap(right))
+            else:
+                raise TypeError('cannot perform operation %s + %s' % (type(left), type(right)))
+        elif match(op, '-'):                # Subtract
+            if type(left) == number and type(right) == number:
+                return number(unwrap(left) - unwrap(right))
+            else:
+                raise TypeError('cannot perform operation %s - %s' % (type(left), type(right)))
+        elif match(op, '/'):                # Divide
+            if type(left) == number and type(right) == number:
+                if unwrap(right) != 0:
+                    return number(unwrap(left) - unwrap(right))
+                else:
+                    raise ArithmeticError('cannot divide by 0')
+            else:
+                raise TypeError('cannot perform operation %s / %s' % (type(left), type(right)))
+        elif match(op, '*'):                # Multiply
+            if type(left) == number and type(right) == number:
+                return number(unwrap(left) * unwrap(right))
+            else:
+                raise TypeError('cannot perform operation %s * %s' % (type(left), type(right)))
+        else:                               # Modulo
+            if type(left) == number and type(right) == number:
+                return number(unwrap(left) % unwrap(right))
+            else:
+                raise TypeError('cannot perform operation %s %% %s' % (type(left), type(right)))
+    else:                                   # Logical expression
+        print('-> logExp')
+
+
+
+    return
     if type(exp) != list:                   # Primitive
         if type(exp) in [number, string, array]:
             return exp
@@ -241,26 +360,6 @@ class result(object):
     def brk(res):
         return result(res, False, True)
 
-# Return the root token of the parse tree.
-def token(tree):
-    return tree[0]
-
-# Return if the root of the tree is the given token.
-def match(tree, tok):
-    return token(tree) == tok
-
-# Return the leftmost subtree of the parse tree.
-def sub(tree):
-    if type(tree[1]) == list:
-        return tree[1][0]
-    return tree[1]
-
-# Return the list of children of the given tree.
-def subs(tree):
-    if type(tree[1]) == list:
-        return tree[1]
-    return [tree[1]]
-
 # Execute a list of statements.
 def execute_stms(envs, iscall, isloop, stms):
     print('execute: %s' % (stms))
@@ -278,21 +377,10 @@ def execute_stms(envs, iscall, isloop, stms):
                 print('break')
                 if not isloop: raise SyntaxError('cannot break outside of a loop.')
                 else:          return result.brk(number(0))
-            elif match(stm, 'assign'):      # Assignment
-                print('assign')
-                if token(sub(stm)) == 'id':
-                    var = sub(sub(stm))
-                    val = evaluate(envs, subs(stm)[1])
-                    bind(envs, var, val)
-                else:
-                    arr = unwrap(find(envs, sub(sub(sub(stm)))))
-                    ind = unwrap(evaluate(envs, subs(sub(stm))[1]))
-                    val = evaluate(envs, subs(stm)[1])
-                    arr[ind] = val
             elif match(stm, 'exp'):         # Expression
                 print('exp')
-                res = result.res(evaluate(envs, stm))
-        elif match(stm, 'block'):           # Block
+                res = evaluate(envs, stm)
+        else:                               # Block
             stm = sub(stm)
             if match(stm, 'funBlk'):        # Function declaration
                 print('funBlk')
@@ -306,7 +394,7 @@ def execute_stms(envs, iscall, isloop, stms):
             else:                           # For block
                 print('forBlk')
                 pass
-    return res
+    return result.res(res)
 
 # Execute the program.
 def execute(envs, stms):

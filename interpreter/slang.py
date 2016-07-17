@@ -47,7 +47,7 @@ def run(p):
     # parse.print_tree(tree)
     stms = tree[1]
     envs = [env.env]                        # Create environment stack
-    execute.execute(envs, stms)             # Execute
+    return execute.execute(envs, stms)      # Execute
 
 # Run Slang as a command-line program.
 if __name__ == "__main__":

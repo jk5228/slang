@@ -4,29 +4,34 @@
 
 import sys
 import slang
+import execute
+import colors
 
 # Launch the RELP.
 def launch():
+    in_prompt = '%s%s%s' % (colors.color('In  [', colors.OKGREEN), '%s', colors.color(']: ', colors.OKGREEN))
+    out_prompt = '%s%s%s%s' % (colors.color('Out [', colors.FAIL), '%s', colors.color(']: ', colors.FAIL), '%s')
     cnt = 0
     print('Slang REPL')
     print('Enter "exit" to quit.')
     print()
-    sys.stdout.write('In  [%d]: ' % cnt)
+    sys.stdout.write(in_prompt % cnt)
     sys.stdout.flush()
     for line in sys.stdin:
         line = line.strip()
         if not line:
-            sys.stdout.write('In  [%d]: ' % cnt)
+            sys.stdout.write(in_prompt % cnt)
             sys.stdout.flush()
             continue
         if line == 'exit': break
 
         try:
             res = slang.run(line)
-            print('Out [%d]: %s' % (cnt, str(res)))
+            res = res.res.value
+            print(out_prompt % (cnt, str(res)))
         except Exception as err:
-            print('Error: %s' % err)
+            print(colors.color('Error: %s', colors.FAIL) % err)
 
         cnt += 1
-        sys.stdout.write('In  [%d]: ' % cnt)
+        sys.stdout.write(in_prompt % cnt)
         sys.stdout.flush()

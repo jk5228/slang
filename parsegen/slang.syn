@@ -15,11 +15,8 @@ stm+     < stm
 stm      < line ;
          | block
 line     : exp
-         | assign
          | break
          | retStm
-assign   : id = exp
-         | arrAcc = exp
 retStm   : return
          | return exp
 block    : funBlk
@@ -37,6 +34,7 @@ id+      < id
          | id , id+
 exp      : ( exp )
          | prim
+         | assign
          | arrAcc
          | funExp
          | arrExp
@@ -45,6 +43,8 @@ exp      : ( exp )
 prim     : num
          | str
          | id
+assign   : id = exp
+         | arrAcc = exp
 arrExp   : { expLst }
 expLst   : exp*
 exp*     < EMPTY
@@ -58,6 +58,7 @@ aOp2     : +
          | -
          | *
          | /
+         | %
 logExp   : lOp1 exp
          | ( exp ) l2op exp
 lOp1     : !
