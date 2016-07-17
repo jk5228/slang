@@ -42,9 +42,9 @@ import repl
 # Run the program string.
 def run(p):
     tokens = tokenize.tokenize(p)           # Tokenize
-    print(tokens)
+    # print(tokens)
     tree = parse.parse(tokens)              # Parse
-    parse.print_tree(tree)
+    # parse.print_tree(tree)
     stms = tree[1]
     envs = [env.env]                        # Create environment stack
     return execute.execute(envs, stms)      # Execute

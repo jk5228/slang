@@ -76,7 +76,7 @@ def unwrap(obj):
 
 # Return the evaluation of the given function on its arguments.
 def call(envs, fname, args):
-    print('-> call')
+    # print('-> call')
     f = find(envs, fname)
     if type(f) == built_in_func:            # Built-in function
         return f.value(*[unwrap(arg) for arg in args])
@@ -120,13 +120,18 @@ def get_num(num):
 
 # Return the value of the expression.
 def evaluate(envs, exp):
-    print('evaluating expression ' + str(exp))
+
+    # print('evaluating expression ' + str(exp))
     exp = sub(exp)
+
     if match(exp, 'exp'):                   # Subexpression
-        print('-> exp')
+
+        # print('-> exp')
         return evaluate(envs, exp)
+
     elif match(exp, 'prim'):                # Primitive
-        print('-> prim')
+
+        # print('-> prim')
         prim = sub(exp)
         if match(prim, 'num'):              # Number
             return number(get_num(sub(prim)))
@@ -134,23 +139,28 @@ def evaluate(envs, exp):
             return string(sub(prim))
         else:                               # Variable
             return find(envs, sub(prim))
+
     elif match(exp, 'assign'):              # Assignment
-        print('-> assign')
+
+        # print('-> assign')
+
         if token(sub(exp)) == 'id':
-            print('-> id')
+            # print('-> id')
             var = sub(sub(exp))
             val = evaluate(envs, subs(exp)[1])
             bind(envs, var, val)
             return val
         else:
-            print('-> arrAcc')
+            # print('-> arrAcc')
             arr = unwrap(find(envs, sub(sub(sub(exp)))))
             ind = unwrap(evaluate(envs, subs(sub(exp))[1]))
             val = evaluate(envs, subs(exp)[1])
             arr[ind] = val
             return val
+
     elif match(exp, 'arrAcc'):              # Array access
-        print('-> arrAcc')
+
+        # print('-> arrAcc')
         arr = unwrap(find(envs, sub(sub(exp))))
         if type(arr) != list:
             raise TypeError('cannot index into %s : %s.' % (sub(sub(exp)), type(arr)))
@@ -158,25 +168,31 @@ def evaluate(envs, exp):
         if ind < 0 or ind >= len(arr):
             raise IndexError('cannot access index %d of array "%s".' % (ind, sub(sub(exp))))
         return arr[ind]
+
     elif match(exp, 'funExp'):              # Function call
-        print('-> funExp')
+
+        # print('-> funExp')
         fname = sub(sub(exp))
         args = [evaluate(envs, arg) for arg in subs(subs(exp)[1])]
         return call(envs, fname, args)
+
     elif match(exp, 'arrExp'):              # Array expression
-        print('-> arrExp')
+
+        # print('-> arrExp')
         expLst = subs(sub(exp))
         exps = [evaluate(envs, exp) for exp in expLst]
         return array(exps)
+
     elif match(exp, 'arithExp'):            # Arithmetic expression
-        print('-> arithExp')
+
+        # print('-> arithExp')
         terms = subs(exp)
         left = evaluate(envs, terms[0])
         right = evaluate(envs, terms[2])
         op = sub(terms[1])
-        print(right)
+
         if match(op, '+'):                  # Add
-            print('-> +')
+            # print('-> +')
             if string in (type(left), type(right)):
                 return string(str(unwrap(left)) + str(unwrap(right)))
             elif type(left) == number and type(right) == number:
@@ -186,13 +202,13 @@ def evaluate(envs, exp):
             else:
                 raise TypeError('cannot perform operation %s + %s' % (type(left), type(right)))
         elif match(op, '-'):                # Subtract
-            print('-> -')
+            # print('-> -')
             if type(left) == number and type(right) == number:
                 return number(unwrap(left) - unwrap(right))
             else:
                 raise TypeError('cannot perform operation %s - %s' % (type(left), type(right)))
         elif match(op, '/'):                # Divide
-            print('-> /')
+            # print('-> /')
             if type(left) == number and type(right) == number:
                 if unwrap(right) != 0:
                     return number(unwrap(left) / unwrap(right))
@@ -201,49 +217,49 @@ def evaluate(envs, exp):
             else:
                 raise TypeError('cannot perform operation %s / %s' % (type(left), type(right)))
         elif match(op, '*'):                # Multiply
-            print('-> *')
+            # print('-> *')
             if type(left) == number and type(right) == number:
                 return number(unwrap(left) * unwrap(right))
             else:
                 raise TypeError('cannot perform operation %s * %s' % (type(left), type(right)))
         else:                               # Modulo
-            print('-> %')
+            # print('-> %')
             if type(left) == number and type(right) == number:
                 return number(unwrap(left) % unwrap(right))
             else:
                 raise TypeError('cannot perform operation %s %% %s' % (type(left), type(right)))
     else:                                   # Logical expression
-        print('-> logExp')
+        # print('-> logExp')
         terms = subs(exp)
-        print(terms)
+
         if len(terms) == 3:                 # Binary expression
             left = evaluate(envs, terms[0])
             right = evaluate(envs, terms[2])
             op = sub(terms[1])
-            print(op)
+
             if match(op, '&&'):             # And
-                print('-> &&')
+                # print('-> &&')
                 return number(unwrap(left) and unwrap(right))
             elif match(op, '||'):           # Or
-                print('-> ||')
+                # print('-> ||')
                 return number(unwrap(left) or unwrap(right))
             elif match(op, '=='):           # Equals
-                print('-> ==')
+                # print('-> ==')
                 return number(unwrap(left) == unwrap(right))
             elif match(op, '<='):           # Less than or equal to
-                print('-> <=')
+                # print('-> <=')
                 return number(unwrap(left) <= unwrap(right))
             elif match(op, '>='):           # Greater than or equal to
-                print('-> >=')
+                # print('-> >=')
                 return number(unwrap(left) >= unwrap(right))
             elif match(op, '<'):            # Less than
-                print('-> <')
+                # print('-> <')
                 return number(unwrap(left) < unwrap(right))
             else:                           # Greater than
-                print('-> >')
+                # print('-> >')
                 return number(unwrap(left) > unwrap(right))
         else:                               # Unary expression (not)
-            print('-> !')
+            # print('-> !')
             operand = evaluate(envs, terms[1])
             return number(not unwrap(operand))
 
@@ -272,35 +288,35 @@ class result(object):
 
 # Execute a list of statements.
 def execute_stms(envs, incall, inloop, stms):
-    print('execute: %s' % (stms))
+    # print('execute: %s' % (stms))
     res = result.res(number(0))
     for stm in stms:
         if not len(stm): continue
         elif match(stm, 'line'):            # Line
             stm = sub(stm)
             if match(stm, 'retStm'):        # Return
-                print('-> retStm')
+                # print('-> retStm')
                 if not incall:  raise SyntaxError('cannot return outside of a function call.')
                 elif stm[1]:    return result.ret(evaluate(envs, stm[1][0]))
                 else:           return result.ret(number(0))
             elif match(stm, 'break'):       # Break
-                print('-> break')
+                # print('-> break')
                 if not inloop: raise SyntaxError('cannot break outside of a loop.')
                 else:          return result.brk(number(0))
             elif match(stm, 'exp'):         # Expression
-                print('-> exp')
+                # print('-> exp')
                 res = evaluate(envs, stm)
         else:                               # Block
             stm = sub(stm)
             if match(stm, 'funBlk'):        # Function declaration
-                print('-> funBlk')
+                # print('-> funBlk')
                 terms = subs(stm)
                 fname = sub(terms[0])
                 args = [sub(t) for t in subs(terms[1])]
                 body = subs(terms[2])
                 res = bind(envs, fname, func(fname, args, body))
             elif match(stm, 'ifBlk'):       # If-else block
-                print('-> ifBlk')
+                # print('-> ifBlk')
                 terms = subs(stm)
                 cond = unwrap(evaluate(envs, terms[0]))
                 stms1 = subs(terms[1])
@@ -314,13 +330,10 @@ def execute_stms(envs, incall, inloop, stms):
                 else:
                     res = res.res
             elif match(stm, 'whileBlk'):    # While block
-                print('-> whileBlk')
+                # print('-> whileBlk')
                 terms = subs(stm)
-                print(terms)
                 stms = subs(terms[1])
-                print(stms)
                 cond = unwrap(evaluate(envs, terms[0]))
-                print(cond)
                 while cond:
                     envs.append({})
                     res = execute_stms(envs, incall, True, stms)
@@ -332,15 +345,11 @@ def execute_stms(envs, incall, inloop, stms):
                         return res
                     cond = unwrap(evaluate(envs, terms[0]))
             else:                           # For block
-                print('-> forBlk')
+                # print('-> forBlk')
                 terms = subs(stm)
-                print(terms)
                 ind = sub(terms[0])
-                print(ind)
                 arr = unwrap(evaluate(envs, terms[1]))
-                print(arr)
                 stms = subs(terms[2])
-                print(stms)
                 for val in arr:
                     envs.append({ ind: val })
                     res = execute_stms(envs, incall, True, stms)
