@@ -53,14 +53,14 @@ exp+     < exp
          | exp , exp+
 arrAcc   : id [ exp ]
 funExp   : id ( expLst )
-arithExp : ( exp ) aOp2 exp
+arithExp : exp aOp2 exp
 aOp2     : +
          | -
          | *
          | /
          | %
 logExp   : lOp1 exp
-         | ( exp ) lOp2 exp
+         | exp lOp2 exp
 lOp1     : !
 lOp2     : &&
          | ||

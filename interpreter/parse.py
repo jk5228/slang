@@ -4,7 +4,7 @@ from collections import defaultdict, OrderedDict
 root = 'prog'
 tlist = ['num','str','id','+','-','*','/','%','!','&&','||','==','<=','>=','<','>','break']
 clist = ['stm*','stm+','stm','id*','id+','exp*','exp+']
-rules = defaultdict(list, {'exp+':[['exp'],['exp',',','exp+']],'arrExp':[['{','expLst','}']],'block':[['funBlk'],['ifBlk'],['whileBlk'],['forBlk']],'aOp2':[['+'],['-'],['*'],['/'],['%']],'funExp':[['id','(','expLst',')']],'stm*':[[],['stm+']],'expLst':[['exp*']],'ifBlk':[['if','(','exp',')','{','stmLst','}','else','{','stmLst','}']],'prog':[['stm*']],'id+':[['id'],['id',',','id+']],'exp':[['(','exp',')'],['prim'],['assign'],['arrAcc'],['funExp'],['arrExp'],['arithExp'],['logExp']],'exp*':[[],['exp+']],'id*':[[],['id+']],'funBlk':[['def','id','(','idLst',')','{','stmLst','}']],'idLst':[['id*']],'assign':[['id','=','exp'],['arrAcc','=','exp']],'stm':[['line',';'],['block']],'stmLst':[['stm*']],'forBlk':[['for','(','id','in','exp',')','{','stmLst','}']],'lOp2':[['&&'],['||'],['=='],['<='],['>='],['>'],['<']],'whileBlk':[['while','(','exp',')','{','stmLst','}']],'line':[['exp'],['break'],['retStm']],'stm+':[['stm'],['stm','stm*']],'arrAcc':[['id','[','exp',']']],'logExp':[['lOp1','exp'],['(','exp',')','lOp2','exp']],'retStm':[['return'],['return','exp']],'prim':[['num'],['str'],['id']],'lOp1':[['!']],'arithExp':[['(','exp',')','aOp2','exp']]})
+rules = defaultdict(list, {'prog':[['stm*']],'logExp':[['lOp1','exp'],['exp','lOp2','exp']],'retStm':[['return'],['return','exp']],'prim':[['num'],['str'],['id']],'ifBlk':[['if','(','exp',')','{','stmLst','}','else','{','stmLst','}']],'stm*':[[],['stm+']],'id*':[[],['id+']],'assign':[['id','=','exp'],['arrAcc','=','exp']],'block':[['funBlk'],['ifBlk'],['whileBlk'],['forBlk']],'exp*':[[],['exp+']],'forBlk':[['for','(','id','in','exp',')','{','stmLst','}']],'exp':[['(','exp',')'],['prim'],['assign'],['arrAcc'],['funExp'],['arrExp'],['arithExp'],['logExp']],'arrAcc':[['id','[','exp',']']],'line':[['exp'],['break'],['retStm']],'lOp2':[['&&'],['||'],['=='],['<='],['>='],['>'],['<']],'whileBlk':[['while','(','exp',')','{','stmLst','}']],'stm':[['line',';'],['block']],'expLst':[['exp*']],'funBlk':[['def','id','(','idLst',')','{','stmLst','}']],'lOp1':[['!']],'funExp':[['id','(','expLst',')']],'idLst':[['id*']],'stmLst':[['stm*']],'arrExp':[['{','expLst','}']],'exp+':[['exp'],['exp',',','exp+']],'aOp2':[['+'],['-'],['*'],['/'],['%']],'stm+':[['stm'],['stm','stm*']],'arithExp':[['exp','aOp2','exp']],'id+':[['id'],['id',',','id+']]})
 
 # An entry object in an Earley parse chart. Children is the pointer to the
 # children entries in the parse tree.
@@ -52,7 +52,7 @@ def scan(token, i, col, e):
         add(col, scan_ent)
 
 # Add the completed entry to the given column.
-def complete(rules, cols, col, e):
+def complete(roots, rules, cols, i, e):
     # print(col.values())
     for cand in list(cols[e.origin].values()):
         # print('CAND: [%s] %s -> %s (%d, %d)' % (e.type, e.nt, e.prod, e.origin, e.dot))
@@ -64,8 +64,12 @@ def complete(rules, cols, col, e):
             comp_ent = entry('comp', cand.nt, cand.prod, cand.origin, cand.dot+1)
             comp_ent.children = cand.children[:] # Pass on children
             comp_ent.children.append(e)         # Add child
-            add(col, comp_ent)
+            add(cols[i], comp_ent)
             # print('COMP: [%s] %s -> %s (%d, %d)' % (e.type, e.nt, e.prod, e.origin, e.dot))
+            if i == len(cols)-1 and comp_ent.nt == root and comp_ent.origin == 0 and comp_ent.completed():
+                return True
+    return False
+
 
 # Return the parse tree (list) for the given root entry of an Earley parse.
 def get_tree(rules, tokens, root):
@@ -148,7 +152,7 @@ def parse(tokens):
                         scan(tokens[i], i+1, cols[i+1], e)
             else:                       # Completed
                 # print('comp')
-                complete(rules, cols, col, e)
+                if complete(root, rules, cols, i, e): break
             j += 1
 
     # Verify that there was a valid parse

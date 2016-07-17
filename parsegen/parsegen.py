@@ -91,7 +91,7 @@ def scan(token, i, col, e):
         add(col, scan_ent)
 
 # Add the completed entry to the given column.
-def complete(rules, cols, col, e):
+def complete(roots, rules, cols, i, e):
     # print(col.values())
     for cand in list(cols[e.origin].values()):
         # print('CAND: [%s] %s -> %s (%d, %d)' % (e.type, e.nt, e.prod, e.origin, e.dot))
@@ -103,8 +103,12 @@ def complete(rules, cols, col, e):
             comp_ent = entry('comp', cand.nt, cand.prod, cand.origin, cand.dot+1)
             comp_ent.children = cand.children[:] # Pass on children
             comp_ent.children.append(e)         # Add child
-            add(col, comp_ent)
+            add(cols[i], comp_ent)
             # print('COMP: [%s] %s -> %s (%d, %d)' % (e.type, e.nt, e.prod, e.origin, e.dot))
+            if i == len(cols)-1 and comp_ent.nt == root and comp_ent.origin == 0 and comp_ent.completed():
+                return True
+    return False
+
 
 # Return the parse tree (list) for the given root entry of an Earley parse.
 def get_tree(rules, tokens, root):
@@ -187,7 +191,7 @@ def parse(tokens):
                         scan(tokens[i], i+1, cols[i+1], e)
             else:                       # Completed
                 # print('comp')
-                complete(rules, cols, col, e)
+                if complete(root, rules, cols, i, e): break
             j += 1
 
     # Verify that there was a valid parse
@@ -337,7 +341,7 @@ def scan(token, i, col, e):
         add(col, scan_ent)
 
 # Add the completed entry to the given column.
-def complete(rules, cols, col, e):
+def complete(root, rules, cols, i, e):
     # print(col.values())
     for cand in list(cols[e.origin].values()):
         # print('CAND: [%s] %s -> %s (%d, %d)' % (e.type, e.nt, e.prod, e.origin, e.dot))
@@ -349,8 +353,11 @@ def complete(rules, cols, col, e):
             comp_ent = entry('comp', cand.nt, cand.prod, cand.origin, cand.dot+1)
             comp_ent.children = cand.children[:] # Pass on children
             comp_ent.children.append(e)         # Add child
-            add(col, comp_ent)
+            add(cols[i], comp_ent)
             # print('COMP: [%s] %s -> %s (%d, %d)' % (e.type, e.nt, e.prod, e.origin, e.dot))
+            if i == len(cols)-1 and comp_ent.nt == root and comp_ent.origin == 0 and comp_ent.completed():
+                return True
+    return False
 
 # Return the parse tree (list) for the given root entry of an Earley parse.
 def get_tree(rules, tokens, root):
@@ -438,7 +445,7 @@ def parser(root, rules):
                             scan(tokens[i], i+1, cols[i+1], e)
                 else:                       # Completed
                     # print('comp')
-                    complete(rules, cols, col, e)
+                    if complete(root, rules, cols, i, e): break
                 j += 1
 
         # Verify that there was a valid parse
