@@ -10,6 +10,7 @@ from collections import OrderedDict
 # Print the given value.
 def s_print(value):
     print(str(value))
+    return execute.number(0)
 
 # Return the array of integers in the interval [lo, hi).
 def s_range(lo, hi):

@@ -78,86 +78,18 @@ def unwrap(obj):
 def call(envs, fname, args):
     print('-> call')
     f = find(envs, fname)
-    # print('calling ' + str(f))
-    if type(f) == built_in_func:
-        # print('built-in')
-        # print('args ' + str(args))
+    if type(f) == built_in_func:            # Built-in function
         return f.value(*[unwrap(arg) for arg in args])
     elif type(f) != func:
         raise TypeError('value %s : %s is not a function.' % (fname, type(f)))
-    if len(f.args) != len(args):
-        raise SyntaxError('function %s expected %d arguments but got %s.' % (fname, len(f.args), len(args)))
+    if len(f.args) != len(args):            # Function
+        raise SyntaxError('function "%s" expected %d arguments but got %s.' % (fname, len(f.args), len(args)))
     fenv = { farg: arg for (farg, arg) in zip(f.args, args) }
     # print(fenv)
     envs.append(fenv)
     res = execute_stms(envs, True, False, f.body)
     envs.pop()
     return res.res
-
-# # Return the value of the expression.
-# def evaluate(envs, exp):
-#     print('eval')
-#     exit(0)
-#     # print('evaluating expression ' + str(exp))
-#     # print(str(type(exp)))
-#     if type(exp) != list:                   # Primitive
-#         if type(exp) in [number, string, array]:
-#             return exp
-#         else:
-#             return find(envs, exp)
-#     elif len(exp) == 1:                     # Primitive
-#         if type(exp[0]) in [number, string, array]:
-#             return exp[0]
-#         else:
-#             return find(envs, exp[0])
-#     elif exp[0] == '!':
-#         return number(int(bool(unwrap(evaluate(envs, exp[1])))))
-#     elif len(exp) == 2:                     # Function or array access expression
-#         value = find(envs, exp[0])
-#         if type(value) == array:
-#             index = unwrap(evaluate(envs, exp[1]))
-#             if index < 0 or index >= len(value.value):
-#                 raise IndexError('Cannot access index %d of array "%s".' % (index, exp[0]))
-#             return value.value[index]
-#         else:
-#             args = [evaluate(envs, arg) for arg in exp[1]]
-#             # print('calling ' + str(exp[0]) + ' on args ' + str(args))
-#             return call(envs, value, args)
-#     else:
-#         if exp[0] == '==':
-#             return number(int(unwrap(evaluate(envs, exp[1])) == unwrap(evaluate(envs, exp[2]))))
-#         elif exp[0] == '&&':
-#             return number(int(unwrap(evaluate(envs, exp[1])) and unwrap(evaluate(envs, exp[2]))))
-#         elif exp[0] == '||':
-#             return number(int(unwrap(evaluate(envs, exp[1])) or unwrap(evaluate(envs, exp[2]))))
-#         elif exp[0] in '><+':
-#             val1 = evaluate(envs, exp[1])
-#             val2 = evaluate(envs, exp[2])
-#             if exp[0] != '+' and type(val1) != type(val2) or type(val1) not in [number, string]:
-#                 raise TypeError('Values ' + str(val1) + ' and ' + str(val2) + ' are not comparable.')
-#             if exp[0] == '>':
-#                 return number(int(unwrap(val1) > unwrap(val2)))
-#             elif exp[0] == '<':
-#                 return number(int(unwrap(val1) < unwrap(val2)))
-#             elif type(val1) == number:
-#                 return number(unwrap(val1) + unwrap(val2))
-#             else:
-#                 return string(str(unwrap(val1)) + str(unwrap(val2)))
-#         elif exp[0] in '-*/':
-#             val1 = evaluate(envs, exp[1])
-#             val2 = evaluate(envs, exp[2])
-#             if type(val1) != type(val2) or type(val1) != number:
-#                 raise TypeError('Values ' + str(val1) + ' and ' + str(val2) + ' invalid for arithmetic operator.')
-#             if exp[0] == '-':
-#                 return number(unwrap(val1) - unwrap(val2))
-#             elif exp[0] == '*':
-#                 return number(unwrap(val1) * unwrap(val2))
-#             elif exp[0] == '/' and unwrap(val2) != 0:
-#                 return number(unwrap(val1) / unwrap(val2))
-#             else:
-#                 raise ArithmeticError('Cannot divide by 0.')
-#         else:
-#             raise SyntaxError('Cannot evaluate expression "' + str(exp) + '".')
 
 # Return the root token of the parse tree.
 def token(tree):
@@ -339,7 +271,7 @@ class result(object):
         return result(res, False, True)
 
 # Execute a list of statements.
-def execute_stms(envs, iscall, isloop, stms):
+def execute_stms(envs, incall, inloop, stms):
     print('execute: %s' % (stms))
     res = result.res(number(0))
     for stm in stms:
@@ -348,12 +280,12 @@ def execute_stms(envs, iscall, isloop, stms):
             stm = sub(stm)
             if match(stm, 'retStm'):        # Return
                 print('-> retStm')
-                if not iscall: raise SyntaxError('cannot return outside of a function call.')
-                elif stm[1]:   return result.ret(evaluate(envs, stm[1][0]))
-                else:          return result.ret(number(0))
+                if not incall:  raise SyntaxError('cannot return outside of a function call.')
+                elif stm[1]:    return result.ret(evaluate(envs, stm[1][0]))
+                else:           return result.ret(number(0))
             elif match(stm, 'break'):       # Break
                 print('-> break')
-                if not isloop: raise SyntaxError('cannot break outside of a loop.')
+                if not inloop: raise SyntaxError('cannot break outside of a loop.')
                 else:          return result.brk(number(0))
             elif match(stm, 'exp'):         # Expression
                 print('-> exp')
@@ -369,56 +301,58 @@ def execute_stms(envs, iscall, isloop, stms):
                 res = bind(envs, fname, func(fname, args, body))
             elif match(stm, 'ifBlk'):       # If-else block
                 print('-> ifBlk')
-                pass
+                terms = subs(stm)
+                cond = unwrap(evaluate(envs, terms[0]))
+                stms1 = subs(terms[1])
+                stms2 = subs(terms[2])
+                envs.append({})
+                if cond:        res = execute_stms(envs, incall, inloop, stms1)
+                else:           res = execute_stms(envs, incall, inloop, stms2)
+                envs.pop()
+                if res.brk or res.ret:
+                    return res
+                else:
+                    res = res.res
             elif match(stm, 'whileBlk'):    # While block
                 print('-> whileBlk')
-                pass
+                terms = subs(stm)
+                print(terms)
+                stms = subs(terms[1])
+                print(stms)
+                cond = unwrap(evaluate(envs, terms[0]))
+                print(cond)
+                while cond:
+                    envs.append({})
+                    res = execute_stms(envs, incall, True, stms)
+                    envs.pop()
+                    if res.ret:
+                        return res
+                    elif res.brk:
+                        res.brk = False
+                        return res
+                    cond = unwrap(evaluate(envs, terms[0]))
             else:                           # For block
                 print('-> forBlk')
-                pass
+                terms = subs(stm)
+                print(terms)
+                ind = sub(terms[0])
+                print(ind)
+                arr = unwrap(evaluate(envs, terms[1]))
+                print(arr)
+                stms = subs(terms[2])
+                print(stms)
+                for val in arr:
+                    envs.append({ ind: val })
+                    res = execute_stms(envs, incall, True, stms)
+                    envs.pop()
+                    if res.ret:
+                        return res
+                    elif res.brk:
+                        res.brk = False
+                        return res
+                    res = res.res
     return result.res(res)
 
 # Execute the program.
 def execute(envs, stms):
     return execute_stms(envs, False, False, stms)
-
-# # Execute the statements in the given list.
-# def execute(envs, stms):
-#     res = 0
-#     for stm in stms:
-#         if not len(stm):
-#             continue
-#         elif stm[0] == 'return':        # Return
-#             return number(0) if len(stm) == 1 else evaluate(envs, stm[1])
-#         elif stm[0] == '=':             # Assignment
-#             if type(stm[1]) != list:
-#                 res = bind(envs, stm[1], evaluate(envs, stm[2]))
-#             else:
-#                 arr = find(envs, stm[1][0])
-#                 index = unwrap(evaluate(envs, stm[1][1][0]))
-#                 if type(arr) != array:
-#                     raise TypeError('Cannot index into "%s" of type %s.' % (stm[1][0], type(arr)))
-#                 if index < 0 or index >= len(arr.value):
-#                     raise IndexError('Cannot access index %d of array "%s".' % (index, stm[1][0]))
-#                 res = arr.value[index] = evaluate(envs, stm[2])
-#         elif stm[0] == 'if':            # If
-#             if bool(unwrap(evaluate(envs, stm[1]))):
-#                 res = execute(envs, stm[2])
-#             else:
-#                 res = execute(envs, stm[3])
-#         elif stm[0] == 'for':           # For
-#             index = stm[1][0]
-#             values = evaluate(envs, stm[1][2])
-#             envs.append(dict())
-#             for i in values.value:
-#                 envs[-1][index] = i
-#                 res = execute(envs, stm[2])
-#             envs.pop()
-#         elif stm[0] == 'while':         # While
-#             while bool(unwrap(evaluate(envs, stm[1]))):
-#                 execute(envs, stm[2])
-#         elif stm[0] == 'def':           # Function definition
-#             res = bind(envs, stm[1], func(stm[1], stm[2], stm[3]))
-#         else:                           # Function
-#             res = evaluate(envs, stm)
-#     return res
