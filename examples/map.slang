@@ -11,4 +11,4 @@ def square(n) {
 }
 
 lst = range(0,100);
-print(map(square, lst));
+map(square, lst);

@@ -17,9 +17,15 @@ class repl(cmd.Cmd):
     out_prompt = '%s%s%s%s' % (colors.color('Out [', colors.FAIL), '%s', colors.color(']: ', colors.FAIL), '%s')
     prompt = ''
     ret_prompt = ''
+    last_run = None
+    exec_list = []
     cnt = 0
 
     # Utility functions
+
+    # Print an error message.
+    def error(self, err):
+        print(colors.color('Error: %s', colors.FAIL) % err)
 
     # Update the in_prompt with the count number.
     def update_in_prompt(self):
@@ -37,7 +43,7 @@ class repl(cmd.Cmd):
             res = res.res
             print(self.out_prompt % (self.cnt, str(res)))
         except Exception as err:
-            print(colors.color('Error: %s', colors.FAIL) % err)
+            self.error(err)
         self.cnt += 1
 
     # Commands
@@ -47,11 +53,57 @@ class repl(cmd.Cmd):
         exit(0)
 
     def do_run(self, fpath):
+        'Run a specified script. If no path is specified, re-run the last run script.'
+        if not fpath:
+            if self.last_run:
+                fpath = self.last_run
+                self.last_run = fpath
+            else:
+                self.error('no script to re-run.')
+                return
         try:
+            self.last_run = fpath
             script = open(fpath, 'r').read()
-            slang.run(script)
+            self.default(script)
         except Exception as err:
-            print('Error: "%s": %s' % (fpath, err))
+            self.error('"%s": %s' % (fpath, err))
+
+    def do_add(self, fpath):
+        'Add a script to the exec list.'
+        if not fpath:
+            self.error('no script specified.')
+            return
+        self.exec_list.append(fpath)
+        print('Script "%s" added to exec list.\n' % fpath)
+
+    def do_del(self, fpath):
+        ('Remove every instance of the specified script from the exec list. '
+         'If not path is specified, remove the last script added, if any.')
+        if not fpath and self.exec_list:
+            script = self.exec_list.pop()
+            print('Script "%s" deleted from exec list.\n' % fpath)
+        else:
+            old_len = len(self.exec_list)
+            self.exec_list = [fp for fp in self.exec_list if fp != fpath]
+            if old_len != len(self.exec_list):
+                print('Script "%s" deleted from exec list.\n' % fpath)
+
+    def do_clear(self, arg):
+        'Clear the exec list.'
+        self.exec_list = []
+        print('Exec list cleared.\n')
+
+    def do_list(self, arg):
+        'Display the exec list.'
+        print('Exec list:')
+        for fp in self.exec_list:
+            print(fp)
+        print()
+
+    def do_exec(self, arg):
+        'Run all the scripts in the exec list.'
+        for fpath in self.exec_list:
+            self.do_run(fpath)
 
     def do_locals(self, arg):
         'Print all of the bindings in the environment.'
@@ -60,7 +112,7 @@ class repl(cmd.Cmd):
             print('%s\t=\t%s' % (key, val))
         print()
 
-    def do_reset(self, arg):
+    def do_reset(self, arg):    # TODO: somehow broke after using cmd module
         'Reset the environment to its initial set of bindings.'
         env.env = self.fresh_env
         print('Environment reset.\n')
