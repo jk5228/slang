@@ -10,14 +10,19 @@
 # Each line specifies a token, whose label is on the left and whose value is on
 # the right. Either a token is a literal in the form
 #
-#        label = literal
+#       label = literal
 #
 # or a pattern in the form
 #
-#        label : pattern
+#       label : pattern
 #
 # Whitespace is ignored. Lines in the spec beginning with "#" are ignored. Only
 # the last definition of a label is used. Literals are matched before patterns.
+# To use only a particular group of a matched pattern as the value of the token,
+# name that group "val" according to the Python re module convention
+#       ...(?P<val>pattern)...
+# where "pattern" is the pattern to match and use, and "..." is a (possibly
+# empty) pattern to match and discard.
 
 import re
 from itertools import chain

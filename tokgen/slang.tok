@@ -34,5 +34,5 @@ in     = in
 # Patterns
 
 num    : -?\d+
-str    : (?:")(?P<val>[^"]*)(?:")
+str    : "(?P<val>[^"]*)"
 id     : [A-Za-z]+
