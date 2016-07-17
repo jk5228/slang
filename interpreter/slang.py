@@ -53,8 +53,12 @@ def run(p):
 # Run Slang as a command-line program.
 if __name__ == "__main__":
     from sys import argv
-    if len(argv) >= 2:                      # Execute script
-        script = open(argv[1], 'r').read()
-        run(script)
+    if len(argv) >= 2:                      # Execute script(s)
+        for fname in argv[1:]:
+            try:
+                script = open(fname, 'r').read()
+                run(script)
+            except Exception as err:
+                print('Error: "%s": %s' % (fname, err))
     else:                                   # Launch REPL
         repl.launch()
