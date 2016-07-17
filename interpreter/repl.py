@@ -2,7 +2,6 @@
 # The Slang REPL (read-evaluate-print loop) does exactly that. To exit, enter
 # "exit"
 
-import sys
 import env
 import cmd
 import copy
@@ -12,7 +11,7 @@ import execute
 
 class repl(cmd.Cmd):
 
-    intro = 'Slang REPL\nEnter "exit" to quit.\nEnter "help" for more commands.'
+    intro = 'Slang REPL\nEnter "exit", ctrl+C, or ctrl+D to quit.\nEnter "help" for more commands.'
     fresh_env = copy.deepcopy(env.env)
     in_prompt = '%s%s%s' % (colors.color('In  [', colors.OKGREEN), '%s', colors.color(']: ', colors.OKGREEN))
     out_prompt = '%s%s%s%s' % (colors.color('Out [', colors.FAIL), '%s', colors.color(']: ', colors.FAIL), '%s')
@@ -32,6 +31,7 @@ class repl(cmd.Cmd):
 
     # Read in Slang line. This is the default action.
     def default(self, line):
+        if line == 'EOF': exit(0)
         try:
             res = slang.run(line)
             res = res.res
@@ -45,6 +45,13 @@ class repl(cmd.Cmd):
     def do_exit(self, arg):
         'Exit from the REPL.'
         exit(0)
+
+    def do_run(self, fpath):
+        try:
+            script = open(fpath, 'r').read()
+            slang.run(script)
+        except Exception as err:
+            print('Error: "%s": %s' % (fpath, err))
 
     def do_locals(self, arg):
         'Print all of the bindings in the environment.'
@@ -75,4 +82,7 @@ class repl(cmd.Cmd):
 
 # Launch the RELP.
 def launch():
-    repl().cmdloop()
+    try:
+        repl().cmdloop()
+    except KeyboardInterrupt:
+        exit(0)
