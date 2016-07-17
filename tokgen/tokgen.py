@@ -52,7 +52,10 @@ def tokenize(prog):
             match = re.match(pattern, prog)
             if match:
                 # print('match ' + str(match))
-                tokens.append((label, prog[:match.end(0)]))
+                if match.groups('val'):
+                    tokens.append((label, match.group('val')))
+                else:
+                    tokens.append((label, prog[:match.end(0)]))
                 prog = prog[match.end(0):]
                 break
 
@@ -140,7 +143,10 @@ def tokenizer(spec):
                 match = re.match(pattern, prog)
                 if match:
                     # print('match ' + str(match))
-                    tokens.append((label, prog[:match.end(0)]))
+                    if match.groups('val'):
+                        tokens.append((label, match.group('val')))
+                    else:
+                        tokens.append((label, prog[:match.end(0)]))
                     prog = prog[match.end(0):]
                     break
 

@@ -27,7 +27,7 @@ def launch():
 
         try:
             res = slang.run(line)
-            res = res.res.value
+            res = res.res
             print(out_prompt % (cnt, str(res)))
         except Exception as err:
             print(colors.color('Error: %s', colors.FAIL) % err)

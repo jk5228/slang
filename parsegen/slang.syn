@@ -4,7 +4,7 @@
 
 # Production rules
 
-: num str id + - * / ! && || == < > break
+: num str id + - * / % ! && || == < > break
 
 prog     : stm*
 stmLst   : stm*

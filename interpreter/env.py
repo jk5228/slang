@@ -12,15 +12,15 @@ def s_print(value):
 
 # Return the array of integers in the interval [lo, hi).
 def s_range(lo, hi):
-    return array([number(i) for i in range(lo, hi)])
+    return execute.array([execute.number(i) for i in range(lo, hi)])
 
 # Return the size of the array.
 def s_size(arr):
-    return number(len(arr))
+    return execute.number(len(arr))
 
 # Return an array with the given length, initialized to zeros.
 def s_array(n):
-    return array([0 for i in range(n)])
+    return execute.array([0 for i in range(n)])
 
 # The global environment
 

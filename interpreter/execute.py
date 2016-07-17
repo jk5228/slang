@@ -1,6 +1,8 @@
 # The Slang executor                                        Jason Kim, 7/15/2016
 # The Slang executor takes a list of Slang statements and executes them.
 
+import env
+
 # Types
 
 # TODO: have every class inherit from object?
@@ -55,7 +57,7 @@ def find(envs, name):
     for env in envs[::-1]:
         if name in env:
             return env[name]
-    raise NameError('name "' + str(name) + '" is not defined.')
+    raise NameError('name "%s" is not defined.' % str(name))
 
 # Bind the variable name to the given value. If the variable is defined in an
 # environment, reassign its value. Otherwise, create a new binding in the local
@@ -74,6 +76,7 @@ def unwrap(obj):
 
 # Return the evaluation of the given function on its arguments.
 def call(envs, fname, args):
+    print('-> call')
     f = find(envs, fname)
     # print('calling ' + str(f))
     if type(f) == built_in_func:
@@ -216,17 +219,17 @@ def evaluate(envs, exp):
             return val
     elif match(exp, 'arrAcc'):              # Array access
         print('-> arrAcc')
-        acc = sub(exp)
-        arr = unwrap(find(envs, sub(sub(acc))))
-        ind = unwrap(evaluate(envs, subs(acc)[1]))
-        if index < 0 or index >= len(arr):
-            raise IndexError('Cannot access index %d of array "%s".' % (ind, sub(sub(acc))))
+        arr = unwrap(find(envs, sub(sub(exp))))
+        if type(arr) != list:
+            raise TypeError('cannot index into %s : %s.' % (sub(sub(exp)), type(arr)))
+        ind = unwrap(evaluate(envs, subs(exp)[1]))
+        if ind < 0 or ind >= len(arr):
+            raise IndexError('cannot access index %d of array "%s".' % (ind, sub(sub(exp))))
         return arr[ind]
     elif match(exp, 'funExp'):              # Function call
         print('-> funExp')
-        funExp = sub(exp)
-        fname = sub(sub(funExp))
-        args = [evaluate(envs, arg) for arg in sub(subs(exp)[1])]
+        fname = sub(sub(exp))
+        args = [evaluate(envs, arg) for arg in subs(subs(exp)[1])]
         return call(envs, fname, args)
     elif match(exp, 'arrExp'):              # Array expression
         print('-> arrExp')
@@ -235,12 +238,13 @@ def evaluate(envs, exp):
         return array(exps)
     elif match(exp, 'arithExp'):            # Arithmetic expression
         print('-> arithExp')
-        arithExp = sub(exp)
-        terms = subs(arithExp)
+        terms = subs(exp)
         left = evaluate(envs, terms[0])
-        op = terms[1]
+        op = sub(terms[1])
         right = evaluate(envs, terms[2])
+        print(right)
         if match(op, '+'):                  # Add
+            print('-> +')
             if string in (type(left), type(right)):
                 return string(str(unwrap(left)) + str(unwrap(right)))
             elif type(left) == number and type(right) == number:
@@ -250,24 +254,28 @@ def evaluate(envs, exp):
             else:
                 raise TypeError('cannot perform operation %s + %s' % (type(left), type(right)))
         elif match(op, '-'):                # Subtract
+            print('-> -')
             if type(left) == number and type(right) == number:
                 return number(unwrap(left) - unwrap(right))
             else:
                 raise TypeError('cannot perform operation %s - %s' % (type(left), type(right)))
         elif match(op, '/'):                # Divide
+            print('-> /')
             if type(left) == number and type(right) == number:
                 if unwrap(right) != 0:
-                    return number(unwrap(left) - unwrap(right))
+                    return number(unwrap(left) / unwrap(right))
                 else:
-                    raise ArithmeticError('cannot divide by 0')
+                    raise ArithmeticError('cannot divide by 0.')
             else:
                 raise TypeError('cannot perform operation %s / %s' % (type(left), type(right)))
         elif match(op, '*'):                # Multiply
+            print('-> *')
             if type(left) == number and type(right) == number:
                 return number(unwrap(left) * unwrap(right))
             else:
                 raise TypeError('cannot perform operation %s * %s' % (type(left), type(right)))
         else:                               # Modulo
+            print('-> %')
             if type(left) == number and type(right) == number:
                 return number(unwrap(left) % unwrap(right))
             else:
