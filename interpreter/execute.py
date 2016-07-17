@@ -193,7 +193,7 @@ def evaluate(envs, exp):
 
         if match(op, '+'):                  # Add
             # print('-> +')
-            if string in (type(left), type(right)):
+            if string in (type(left), type(right)) and number in (type(left), type(right)):
                 return string(str(unwrap(left)) + str(unwrap(right)))
             elif type(left) == number and type(right) == number:
                 return number(unwrap(left) + unwrap(right))
