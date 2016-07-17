@@ -37,13 +37,14 @@ import parse
 import tokenize
 import env
 import execute
+import repl
 
 # Run the program string.
 def run(p):
     tokens = tokenize.tokenize(p)           # Tokenize
     # print(tokens)
     tree = parse.parse(tokens)              # Parse
-    parse.print_tree(tree)
+    # parse.print_tree(tree)
     stms = tree[1]
     envs = [env.env]                        # Create environment stack
     execute.execute(envs, stms)             # Execute
@@ -51,9 +52,8 @@ def run(p):
 # Run Slang as a command-line program.
 if __name__ == "__main__":
     from sys import argv
-    fname = argv[-1]
-    if fname:                               # Execute script
-        script = open(fname, 'r').read()
+    if len(argv) >= 2:                      # Execute script
+        script = open(argv[1], 'r').read()
         run(script)
     else:                                   # Launch REPL
-        pass
+        repl.launch()

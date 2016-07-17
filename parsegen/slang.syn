@@ -4,7 +4,7 @@
 
 # Production rules
 
-: num str id + - * / ! && || == < >
+: num str id + - * / ! && || == < > break
 
 prog     : stm*
 stmLst   : stm*
@@ -12,16 +12,17 @@ stm*     < EMPTY
          | stm+
 stm+     < stm
          | stm stm*
-stm      : line ;
+stm      < line ;
          | block
-line     < exp
+line     : exp
          | assign
          | break
-         | return
-         | return exp
+         | retStm
 assign   : id = exp
          | arrAcc = exp
-block    < funBlk
+retStm   : return
+         | return exp
+block    : funBlk
          | ifBlk
          | whileBlk
          | forBlk
