@@ -12,10 +12,6 @@ def s_print(value):
     print(str(value))
     return execute.number(0)
 
-# Return the array of integers in the interval [lo, hi).
-def s_range(lo, hi):
-    return execute.array([execute.number(i) for i in range(lo, hi)])
-
 # Return the size of the array.
 def s_size(arr):
     return execute.number(len(arr))
@@ -33,7 +29,6 @@ def s_add(arr, item):
 
 env = OrderedDict({
     'print': execute.built_in_func(s_print),
-    'range': execute.built_in_func(s_range),
     'size': execute.built_in_func(s_size),
     'array': execute.built_in_func(s_array),
     'add': execute.built_in_func(s_add)

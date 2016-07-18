@@ -183,6 +183,25 @@ def evaluate(envs, exp):
         exps = [evaluate(envs, exp) for exp in expLst]
         return array(exps)
 
+    elif match(exp, 'rngExp'):              # Range expression
+
+        # print('-> rngExp')
+        terms = subs(exp)
+        lo = evaluate(envs, terms[0])
+        # print(lo)
+        hi = evaluate(envs, terms[2])
+        # print(hi)
+        op = sub(terms[1])
+        # print(op)
+
+        if type(lo) == type(hi) and type(lo) == number:
+            if op == '..':
+                return array([number(i) for i in range(unwrap(lo), unwrap(hi)+1)])
+            else:
+                return array([number(i) for i in range(unwrap(lo), unwrap(hi))])
+        else:
+            raise IndexError('cannot have range %s%s%s.' % (type(lo), op, type(hi)))
+
     elif match(exp, 'arrComp'):             # Array comprehension
 
         # print('-> arrComp')

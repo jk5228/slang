@@ -4,7 +4,7 @@
 
 # Production rules
 
-: num str id + - * / % ! && || == <= >= < > break
+: num str id .. ... + - * / % ! && || == <= >= < > break
 
 prog     : stm*
 stmLst   : stm*
@@ -38,6 +38,7 @@ exp      : ( exp )
          | arrAcc
          | funExp
          | arrExp
+         | rngExp
          | arrComp
          | arithExp
          | logExp
@@ -47,6 +48,8 @@ prim     : num
 assign   : id = exp
          | arrAcc = exp
 arrExp   : { expLst }
+rngExp   : exp .. exp
+         | exp ... exp
 arrComp  : { id in exp : exp }
          | { id in exp : exp -> exp }
 expLst   : exp*

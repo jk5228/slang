@@ -12,6 +12,10 @@
 # - For loops work like Python for loops, iterating over an array.
 # - Built-in functions include: print, range, size, array.
 
+# BUGS:
+# - precedence (arithmetic, logical, and assignment (!!!!) operators)
+# - add() built-in function (appends unwrapped item)
+
 # TODO:
 # - overall goal: make language I would enjoy using and resolves issues in Python
 # - if, else if
@@ -46,7 +50,7 @@ def run(p):
     tokens = tokenize.tokenize(p)           # Tokenize
     # print(tokens)
     tree = parse.parse(tokens)              # Parse
-    # parse.print_tree(tree)
+    parse.print_tree(tree)
     stms = tree[1]
     envs = [env.env]                        # Create environment stack
     return execute.execute(envs, stms)      # Execute
