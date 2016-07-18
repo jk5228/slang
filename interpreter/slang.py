@@ -10,23 +10,28 @@
 # - Functions without a return value return the value of the last statement.
 # - Expressions with more than one term must be wrapped by parentheses.
 # - For loops work like Python for loops, iterating over an array.
-# - Built-in functions include: print, range, size, array.
+# - Built-in functions include: print, size, array.
+# - The range n..m evaluates to the numbers n to m.
+# - The range n...m evaluates to the numbers n to m-1.
+# - An array comprehension returns a new array.
+# - An array comprehension with a filter expression evaluates the filter
+#   expression and places each result into the return array.
 
 # BUGS:
 # - precedence (arithmetic, logical, and assignment (!!!!) operators)
 
 # TODO:
 # - overall goal: make language I would enjoy using and resolves issues in Python
+# - write an LALR(1) parser generator (according to Appel)
+# - robust error messages during lexing/parsing
 # - if, else if
 # - implement built-in functions in Slang
 # - have well-defined interfaces with Python functions for I/O and other OS features
-# - robust error messages during lexing/parsing
 # - complete error-handling
 # - optional environment dump at run-time error
 # - classes
 # - flesh out built-in classes with methods
 # - lambdas
-# - range syntax (a la Ruby)
 # - slice syntax (a la Python)
 # - built-in, first-class regexes
 # - Currying?
@@ -35,7 +40,7 @@
 # - "compilation" into condensed format or even bytecode?
 # - include other useful built-in functions
 # - robust pattern-matching
-# - either support or disallow nested functions
+# - either support or disallow nested functions and closures
 
 from collections import deque
 import parse
