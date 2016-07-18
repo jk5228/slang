@@ -14,11 +14,12 @@
 
 # TODO:
 # - overall goal: make language I would enjoy using and resolves issues in Python
+# - if, else if
+# - implement built-in functions in Slang
+# - have well-defined interfaces with Python functions for I/O and other OS features
 # - robust error messages during lexing/parsing
 # - complete error-handling
 # - optional environment dump at run-time error
-# - implement built-in functions in Slang
-# - have well-defined interfaces with Python functions for I/O and other OS features
 # - classes
 # - flesh out built-in classes with methods
 # - lambdas

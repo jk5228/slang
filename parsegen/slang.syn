@@ -48,6 +48,7 @@ assign   : id = exp
          | arrAcc = exp
 arrExp   : { expLst }
 arrComp  : { id in exp : exp }
+         | { id in exp : exp -> exp }
 expLst   : exp*
 exp*     < EMPTY
          | exp+

@@ -194,6 +194,9 @@ def evaluate(envs, exp):
         # print(arr)
         cond = terms[2]
         # print(cond)
+        filter_exp = None
+        if len(terms) == 4:
+            filter_exp = terms[3]
 
         if type(arr) != list:
             raise TypeError('cannot index into type %s.' % type(arr))
@@ -204,6 +207,8 @@ def evaluate(envs, exp):
         for val in arr:
             envs[-1][ind] = val
             if unwrap(evaluate(envs, cond)):
+                if filter_exp:
+                    val = evaluate(envs, filter_exp)
                 res_arr.append(val)
 
         envs.pop()

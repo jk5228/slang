@@ -24,11 +24,17 @@ def s_size(arr):
 def s_array(n):
     return execute.array([0 for i in range(n)])
 
+# Return an item after adding it to the end of the given array.
+def s_add(arr, item):
+    arr.append(item)
+    return item
+
 # The global environment
 
 env = OrderedDict({
     'print': execute.built_in_func(s_print),
     'range': execute.built_in_func(s_range),
     'size': execute.built_in_func(s_size),
-    'array': execute.built_in_func(s_array)
+    'array': execute.built_in_func(s_array),
+    'add': execute.built_in_func(s_add)
 })
