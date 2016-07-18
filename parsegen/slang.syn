@@ -38,6 +38,7 @@ exp      : ( exp )
          | arrAcc
          | funExp
          | arrExp
+         | arrComp
          | arithExp
          | logExp
 prim     : num
@@ -46,6 +47,7 @@ prim     : num
 assign   : id = exp
          | arrAcc = exp
 arrExp   : { expLst }
+arrComp  : { id in exp : exp }
 expLst   : exp*
 exp*     < EMPTY
          | exp+

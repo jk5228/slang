@@ -183,6 +183,32 @@ def evaluate(envs, exp):
         exps = [evaluate(envs, exp) for exp in expLst]
         return array(exps)
 
+    elif match(exp, 'arrComp'):             # Array comprehension
+
+        # print('-> arrComp')
+        terms = subs(exp)
+        # print(terms)
+        ind = sub(terms[0])
+        # print(ind)
+        arr = unwrap(evaluate(envs, terms[1]))
+        # print(arr)
+        cond = terms[2]
+        # print(cond)
+
+        if type(arr) != list:
+            raise TypeError('cannot index into type %s.' % type(arr))
+
+        res_arr = []
+        envs.append({})
+
+        for val in arr:
+            envs[-1][ind] = val
+            if unwrap(evaluate(envs, cond)):
+                res_arr.append(val)
+
+        envs.pop()
+        return array(res_arr)
+
     elif match(exp, 'arithExp'):            # Arithmetic expression
 
         # print('-> arithExp')
