@@ -1,3 +1,4 @@
+# Compute factors and prime factors of numbers.
 def factors(n) {
     res = {i in 0..30 : 1 -> 0};
     cnt = 0;

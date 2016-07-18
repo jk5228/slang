@@ -25,6 +25,5 @@ def s_array(n):
 env = OrderedDict({
     'print': execute.built_in_func(s_print),
     'size': execute.built_in_func(s_size),
-    'array': execute.built_in_func(s_array),
-    'add': execute.built_in_func(s_add)
+    'array': execute.built_in_func(s_array)
 })

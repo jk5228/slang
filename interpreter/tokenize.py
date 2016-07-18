@@ -4,7 +4,7 @@ import re
 from itertools import chain
 
 ws = re.compile('\s+')
-pairs = [('}', re.compile(re.escape('}'))),('||', re.compile(re.escape('||'))),('{', re.compile(re.escape('{'))),('while', re.compile(re.escape('while'))),('return', re.compile(re.escape('return'))),('in', re.compile(re.escape('in'))),('if', re.compile(re.escape('if'))),('for', re.compile(re.escape('for'))),('else', re.compile(re.escape('else'))),('def', re.compile(re.escape('def'))),('break', re.compile(re.escape('break'))),(']', re.compile(re.escape(']'))),('[', re.compile(re.escape('['))),('>=', re.compile(re.escape('>='))),('>', re.compile(re.escape('>'))),('==', re.compile(re.escape('=='))),('=', re.compile(re.escape('='))),('<=', re.compile(re.escape('<='))),('<', re.compile(re.escape('<'))),(';', re.compile(re.escape(';'))),(':', re.compile(re.escape(':'))),('/', re.compile(re.escape('/'))),('...', re.compile(re.escape('...'))),('..', re.compile(re.escape('..'))),('->', re.compile(re.escape('->'))),('-', re.compile(re.escape('-'))),(',', re.compile(re.escape(','))),('+', re.compile(re.escape('+'))),('*', re.compile(re.escape('*'))),(')', re.compile(re.escape(')'))),('(', re.compile(re.escape('('))),('&&', re.compile(re.escape('&&'))),('%', re.compile(re.escape('%'))),('!', re.compile(re.escape('!'))),('num', re.compile('-?\d+')),('id', re.compile('[A-Za-z]+')),('str', re.compile('"(?P<val>[^"]*)"'))]
+triples = [('}', '=', re.compile(re.escape('}'))),('||', '=', re.compile(re.escape('||'))),('{', '=', re.compile(re.escape('{'))),('while', '=', re.compile(re.escape('while'))),('return', '=', re.compile(re.escape('return'))),('in', '=', re.compile(re.escape('in'))),('if', '=', re.compile(re.escape('if'))),('for', '=', re.compile(re.escape('for'))),('else', '=', re.compile(re.escape('else'))),('def', '=', re.compile(re.escape('def'))),('break', '=', re.compile(re.escape('break'))),(']', '=', re.compile(re.escape(']'))),('[', '=', re.compile(re.escape('['))),('>=', '=', re.compile(re.escape('>='))),('>', '=', re.compile(re.escape('>'))),('==', '=', re.compile(re.escape('=='))),('=', '=', re.compile(re.escape('='))),('<=', '=', re.compile(re.escape('<='))),('<', '=', re.compile(re.escape('<'))),(';', '=', re.compile(re.escape(';'))),(':', '=', re.compile(re.escape(':'))),('/', '=', re.compile(re.escape('/'))),('...', '=', re.compile(re.escape('...'))),('..', '=', re.compile(re.escape('..'))),('->', '=', re.compile(re.escape('->'))),('-', '=', re.compile(re.escape('-'))),(',', '=', re.compile(re.escape(','))),('+', '=', re.compile(re.escape('+'))),('*', '=', re.compile(re.escape('*'))),(')', '=', re.compile(re.escape(')'))),('(', '=', re.compile(re.escape('('))),('&&', '=', re.compile(re.escape('&&'))),('%', '=', re.compile(re.escape('%'))),('!', '=', re.compile(re.escape('!'))),('num', ':', re.compile('-?\d+')),('str', ':', re.compile('"(?P<val>[^"]*)"')),('id', ':', re.compile('[A-Za-z]+')),('com', '<', re.compile('#[^\n]*'))]
 
 # Return a list of label-token pairs given a program string.
 def tokenize(prog):
@@ -24,11 +24,12 @@ def tokenize(prog):
             continue
 
         # Match token patterns
-        for (label, pattern) in pairs:
+        for (label, typ, pattern) in triples:
             match = re.match(pattern, prog)
             if match:
+                if typ == '<': pass
                 # print('match ' + str(match))
-                if match.groups('val'):
+                elif match.groups('val'):
                     tokens.append((label, match.group('val')))
                 else:
                     tokens.append((label, prog[:match.end(0)]))

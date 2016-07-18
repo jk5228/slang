@@ -14,10 +14,11 @@
 
 # BUGS:
 # - precedence (arithmetic, logical, and assignment (!!!!) operators)
-# - add() built-in function (appends unwrapped item)
+# - REPL reset command not resetting since using cmd module
 
 # TODO:
 # - overall goal: make language I would enjoy using and resolves issues in Python
+# - comments
 # - if, else if
 # - implement built-in functions in Slang
 # - have well-defined interfaces with Python functions for I/O and other OS features
@@ -50,7 +51,7 @@ def run(p):
     tokens = tokenize.tokenize(p)           # Tokenize
     # print(tokens)
     tree = parse.parse(tokens)              # Parse
-    # parse.print_tree(tree)
+    parse.print_tree(tree)
     stms = tree[1]
     envs = [env.env]                        # Create environment stack
     return execute.execute(envs, stms)      # Execute

@@ -14,13 +14,17 @@
 #
 # or a pattern in the form
 #
-#       label : pattern
+#       label [ : | < ] pattern
 #
-# Whitespace is ignored. Lines in the spec beginning with "#" are ignored. Only
-# the last definition of a label is used. Literals are matched before patterns.
-# To use only a particular group of a matched pattern as the value of the token,
-# name that group "val" according to the Python re module convention
+# Whitespace is ignored. Lines in the spec beginning with "#" are ignored.
+# Literals are matched before patterns. The separator ":" denotes a pattern that
+# should be included in the token list and the separator "<" denotes a pattern
+# that should be omitted from the token list. To use only a particular group of
+# a matched pattern as the value of the token, name that group "val" according
+# to the Python re module convention
+#
 #       ...(?P<val>pattern)...
+#
 # where "pattern" is the pattern to match and use, and "..." is a (possibly
 # empty) pattern to match and discard.
 
@@ -33,7 +37,7 @@ import re
 from itertools import chain
 
 ws = re.compile('\s+')
-pairs = [{0}]
+triples = [{0}]
 
 # Return a list of label-token pairs given a program string.
 def tokenize(prog):
@@ -53,11 +57,12 @@ def tokenize(prog):
             continue
 
         # Match token patterns
-        for (label, pattern) in pairs:
+        for (label, typ, pattern) in triples:
             match = re.match(pattern, prog)
             if match:
+                if typ == '<': pass
                 # print('match ' + str(match))
-                if match.groups('val'):
+                elif match.groups('val'):
                     tokens.append((label, match.group('val')))
                 else:
                     tokens.append((label, prog[:match.end(0)]))
@@ -80,6 +85,8 @@ def tokenize(prog):
 def parse_spec(spec):
     lines = spec.split('\n')
     triples = []
+    literals = []
+    patterns = []
 
     # Process lines
     for (i, line) in enumerate(lines):
@@ -92,40 +99,24 @@ def parse_spec(spec):
         terms = line.split()
 
         if len(terms) != 3:
-            raise SyntaxError('line %d: expected format "label [:=] value" with' +
+            raise SyntaxError('line %d: expected format "label [:=<] value" with' +
                 '  3 terms but instead got line "%s" with %d terms.' % (i, line, len(terms)))
 
-        triples.append(terms)
+        if terms[1] == '=':
+            literals.append(terms)
+        else:
+            patterns.append(terms)
+
+    # Sort literals
+    triples.extend(sorted(literals, key=lambda x: x[0], reverse=True))
+    triples.extend(patterns)
 
     return triples
-
-# Return a list of label-regex pairs given a list of label-type-regex triples,
-# with literals followed by patterns.
-def get_pairs(triples):
-
-    literals = dict()
-    patterns = dict()
-
-    for (label, typ, value) in triples:
-
-        if typ == '=':                 # Literal
-            literals[label] = value
-        elif typ == ':':               # Pattern
-            patterns[label] = re.compile(value)
-
-    # print(literals)
-    # print(patterns)
-
-    literals = sorted(literals.items(), key=lambda x: x[1], reverse=True)
-    literals = [(label, re.compile(re.escape(value))) for (label, value) in literals]
-
-    # Return pairs
-    return literals + list(patterns.items())
 
 # Return a tokenizer function for the given spec string.
 def tokenizer(spec):
     ws = re.compile('\s+')
-    pairs = get_pairs(parse_spec(spec))
+    triples = parse_spec(spec)
 
     def tokenize(prog):
         tokens = []
@@ -144,11 +135,12 @@ def tokenizer(spec):
                 continue
 
             # Match token patterns
-            for (label, pattern) in pairs:
+            for (label, typ, pattern) in triples:
                 match = re.match(pattern, prog)
                 if match:
+                    if typ == '<': pass
                     # print('match ' + str(match))
-                    if match.groups('val'):
+                    elif match.groups('val'):
                         tokens.append((label, match.group('val')))
                     else:
                         tokens.append((label, prog[:match.end(0)]))
@@ -173,29 +165,17 @@ def tokenizer(spec):
 # spec string.
 def tok_file(path, spec):
     triples = parse_spec(spec)
-
-    literals = dict()
-    patterns = dict()
-    pair_strs = []
+    triple_strs = []
 
     for (label, typ, value) in triples:
-
-        if typ == '=':                 # Literal
-            literals[label] = value
-        elif typ == ':':               # Pattern
-            patterns[label] = value
-
-    # Add label-literal pairs in lexical order w/r/t literal
-    for (label, value) in sorted(literals.items(), key=lambda x: x[1], reverse=True):
-        pair_strs.append('(\'%s\', re.compile(re.escape(\'%s\')))' % (label, value))
-
-    # Add label-pattern pairs in no particular order
-    for (label, value) in patterns.items():
-        pair_strs.append('(\'%s\', re.compile(\'%s\'))' % (label, value))
+        if typ == '=':
+            triple_strs.append('(\'%s\', \'%s\', re.compile(re.escape(\'%s\')))' % (label, typ, value))
+        else:
+            triple_strs.append('(\'%s\', \'%s\', re.compile(\'%s\'))' % (label, typ, value))
 
     # Write file
     f = open(path, 'w')
-    f.write(tokprog.format(','.join(pair_strs)))
+    f.write(tokprog.format(','.join(triple_strs)))
     f.close()
 
 # When executed, take filepath fpath and spec filepath sfpath arguments and
