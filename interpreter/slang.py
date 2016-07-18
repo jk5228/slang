@@ -50,7 +50,7 @@ def run(p):
     tokens = tokenize.tokenize(p)           # Tokenize
     # print(tokens)
     tree = parse.parse(tokens)              # Parse
-    parse.print_tree(tree)
+    # parse.print_tree(tree)
     stms = tree[1]
     envs = [env.env]                        # Create environment stack
     return execute.execute(envs, stms)      # Execute

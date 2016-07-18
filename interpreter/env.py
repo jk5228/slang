@@ -20,11 +20,6 @@ def s_size(arr):
 def s_array(n):
     return execute.array([0 for i in range(n)])
 
-# Return an item after adding it to the end of the given array.
-def s_add(arr, item):
-    arr.append(item)
-    return item
-
 # The global environment
 
 env = OrderedDict({

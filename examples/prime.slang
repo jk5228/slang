@@ -1,32 +1,28 @@
 def factors(n) {
-    res = range(0,30);
+    res = {i in 0..30 : 1 -> 0};
     cnt = 0;
-    for (i in range(1,n+1)) {
+    for (i in 1..n) {
         if (n % i == 0) {
             res[cnt] = i;
-            cnt = cnt + 1;
+            cnt = (cnt + 1);
         } else {
         }
     }
-    len = 0;
-    for (i in res) {
-        if (i)
-    }
-    return res;
+    return {i in res : i -> i};
 }
 
 def prime(n) {
     return size(factors(n)) == 2;
 }
 
-primes = { n in range(1,100) : prime(n) };
-
-print(primes);
 
 def primeFactors(n) {
     return { e in factors(n) : prime(e) };
 }
 
-for (i in range(0,100)) {
+primes = { n in 1..100 : prime(n) };
+print(primes);
+
+for (i in 1..100) {
     print(primeFactors(i));
 }
