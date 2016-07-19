@@ -21,8 +21,9 @@
 # - precedence (arithmetic, logical, and assignment (!!!!) operators)
 
 # TODO:
-# - overall goal: make language I would enjoy using and resolves issues in Python
-# - write an LALR(1) parser generator (according to Appel)
+# - add start/end positions for each token in output
+# - make token class with label, value, start, and end
+# - write an LR(1) parser generator (according to Appel)
 # - robust error messages during lexing/parsing
 # - if, else if
 # - implement built-in functions in Slang

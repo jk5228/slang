@@ -294,6 +294,43 @@ def parse_spec(spec):
 
     return (root, tlist, clist, rules)
 
+# LR(1) Parser generation code
+
+# To build states and edges:
+
+# Data structures:
+# List of states
+# List of shift edges (state-terminal pairs)
+# List of goto edges (state-nonterminal pairs)
+# Item object containing nt symbol, prod symbol list, pos, lookahead symbol
+# AST node object containing parent symbol, prod symbol list if any (need?), children list, start, end
+
+# Add aux production rule S -> S$
+# Build T and E sets (p. 60)
+
+# To make table:
+
+# Data structures:
+# Final LR table is dict<state number, dict<lookahead symbol, action>>
+
+# Accept action for each state with S -> S.$ item
+# Reduce for each item with dot at end
+
+# To deal with precedence/associativity (left, right, nonassoc):
+# Dict of precedences of terminals (map terminal to number [assigned by incrementing cnt as directives processed])
+# defaultdict(None) of associativity (left, right, None = nonassoc)
+# Whenever shift-reduce conflict between ordered ops, consult prec dict and pick whichever is higher
+
+# To include positions for error messages:
+# Extract from underlying token objects
+
+# Allow Python semantic actions for each production in .syn?
+
+
+
+
+
+# OLD EARLEY PARSER GEN
 
 # An entry object in an Earley parse chart. Children is the pointer to the
 # children entries in the parse tree.
