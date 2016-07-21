@@ -8,15 +8,21 @@
 # 
 # The .syn format:
 # A grammar is a list of one or more production rules, as well as an optional
-# first line listing terminal symbols to preserve in the parse tree. This line
-# should have the format
+# first line listing terminal symbols to preserve in the parse tree and zero or
+# more directives. This line of terminals should have the format
 #
 #       : [ terminal ] *
 #
-# where "terminal" is a terminal symbol.
+# where "terminal" is a terminal symbol. A directive has the format
+# 
+#       %directive [ terminal ] *
 #
-# A production rule
-# has the format
+# where "directive" is "left", "right", or "nonassoc" (for left-, right-, and
+# non-associative, respectively) and "terminal" is a terminal operator symbol.
+# Terminals listed in a directive line are assigned a precedence number and that
+# number is lower (higher precedence) than all precedence numbers assigned to
+# terminals on later lines. Operator in the same line are assigned the same
+# precedence number. A production rule has the format
 #
 #       nonterminal [ : | < ] [ "EMPTY" | nonterminal | terminal ] +
 #                       [ "|" [ "EMPTY" | nonterminal | terminal ] + ] +
@@ -24,7 +30,9 @@
 # where "nonterminal" is a nonterminal symbol, "EMPTY" generates no production
 # (i.e., epsilon), and "terminal" is a terminal symbol. Production rules may
 # be written on a single line or on multiple lines, with all lines after the
-# first beginning with "|".
+# first beginning with "|". The names "EMPTY", "START_SYM", "END_SYM", and "|"
+# are reserved and cannot be used for any terminal or nonterminal symbol in the
+# grammar.
 #
 # Whitespace in a .syn file is ignored. Lines in the spec beginning with "#" are
 # ignored. The first nonterminal specified is considered the root nonterminal of
@@ -33,7 +41,7 @@
 # nonterminal that will be contracted from the parse tree (i.e., it's children
 # become the children of the parent of the contracted nonterminal node).
 
-import re
+import re, time
 from collections import defaultdict, OrderedDict
 
 # Parser program
@@ -254,14 +262,16 @@ def parse_spec(spec):
                 continue
 
         # Parse directive
-        if terms[0] == '%':
+        if terms[0][0] == '%':
 
             direction = None
 
-            if terms[1] == 'left':
+            if terms[0][1:] == 'left':
                 direction = 'left'
-            elif terms[1] == 'right':
+            elif terms[0][1:] == 'right':
                 direction = 'right'
+            elif terms[0][1:] != 'nonassoc':
+                raise SyntaxError('undefined directive %s.' % terms[0])
 
             for term in terms[2:]:
                 prec[term] = prec_ind
@@ -348,6 +358,24 @@ class item(object):
         self.dot = dot          # Dot position
         self.la = la            # Lookahead symbol
 
+    def __repr__(self):
+        rhs = self.prod[:]
+        rhs.insert(self.dot, '.')
+        rhs = ' '.join(rhs)
+        return 'item(%s -> %s, %s)' % (self.nt, rhs, self.la)
+
+    def __eq__(self, other):
+        return other and self.nt == other.nt\
+                     and self.prod == other.prod\
+                     and self.dot == other.dot\
+                     and self.la == other.la
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+    def __hash__(self):
+        return hash((self.nt, str(self.prod), self.dot, self.la))
+
     # Return whether the item is completed (i.e., the dot is at the end).
     def completed(self):
         return self.dot >= len(self.prod)
@@ -363,7 +391,7 @@ class item(object):
     # la will be updated.
     def advance(self, la=None):
         if self.completed():
-            raise ValueError('cannot advance completed item %s.' % (self.id()))
+            raise ValueError('cannot advance completed item %s.' % str(self))
         return item(self.nt, self.prod, self.dot+1, la if la else self.la)
 
 # Compute the first and nullable properties for each symbol in the given
@@ -410,7 +438,7 @@ def compute_props(grammar):
 def first(grammar, prod):
     res = set()
     for sym in prod:
-        res.union(grammar.first[sym])
+        res = res.union(grammar.first[sym])
         if not grammar.nullable[sym]: break
     return res
 
@@ -427,15 +455,15 @@ def closure(grammar, items):
 
         changed = False
 
-        for it in items:
+        for it in list(items):
             for prod in grammar.rules[it.next()]:
                 first_set = first(grammar, prod)
                 if nullable(grammar, prod):
                     first_set.add(it.la)
                 for sym in first_set:
-                    old_size = len(items)
+                    old_len = len(items)
                     items.add(item(it.next(), prod, 0, sym))
-                    changed = changed or old_size != len(items)
+                    changed = changed or len(items) != old_len
 
     return items
 
@@ -446,15 +474,31 @@ def goto(grammar, state, la):
 
 # Return a generated LR(1) parse table (dict) given a grammar object.
 def generate_table(grammar):
+
+    # Start item
+    start_sym = 'START_SYM'
+    end_sym = 'END_SYM'
+    start_prod = [grammar.root, end_sym]
+    start_item = item(start_sym, start_prod, 0, None)
+    start_set = set([start_item])
+
     states = []
     shift = []
     goto = []
 
+    # Add auxiliary root production rule
+    grammar.rules[start_sym] = [start_prod]
+
     # Compute first set and nullability for each symbol in the grammar
     compute_props(grammar)
-    print(grammar.first)
-    print(grammar.nullable)
 
+    # print(grammar.first)
+    # print(grammar.nullable)
+
+    # Initialize the start state
+    states.append(closure(grammar, start_set))
+
+    print(states[0])
 
 # Add aux production rule S -> S$
 # Build T and E sets (p. 60)
@@ -478,74 +522,6 @@ def generate_table(grammar):
 # Allow Python semantic actions for each production in .syn?
 
 
-
-
-
-# OLD EARLEY PARSER GEN
-
-# An entry object in an Earley parse chart. Children is the pointer to the
-# children entries in the parse tree.
-class entry(object):
-    def __init__(self, type, nt, prod, origin, dot):
-        self.type = type
-        self.nt = nt
-        self.prod = prod
-        self.origin = origin
-        self.dot = dot
-        self.children = []
-
-    # Return a string id unique for each (nt, prod, origin) triple.
-    def id(self):
-        return '%s:%s:%s:%s' % (self.nt, self.prod, self.origin, self.dot)
-
-    # Return whether the production is completed.
-    def completed(self):
-        return self.dot >= len(self.prod)
-
-    # Return the next symbol to process.
-    def next(self):
-        if not self.completed():
-            return self.prod[self.dot]
-        else:
-            raise IndexError('no next term for completed production "%s".' % str(self.prod))
-
-# Add the entry to the column (OrderedDict) if there isn't already a rule with
-# the same id in the column.
-def add(col, e):
-    if not col.get(e.id()):
-        col[e.id()] = e
-
-# Add any predicted entries to the given column.
-def predict(rules, i, col, e):
-    for prod in rules[e.next()]:
-        add(col, entry('pred', e.next(), prod, i, 0))
-
-# Add the scanned entry to the given column if the next token is expected.
-def scan(token, i, col, e):
-    if e.next() == token[0]:
-        scan_ent = entry('scan', e.nt, e.prod, e.origin, e.dot+1)
-        scan_ent.children = e.children          # Pass on children
-        scan_ent.children.append(token)         # Add terminal
-        add(col, scan_ent)
-
-# Add the completed entry to the given column.
-def complete(root, rules, cols, i, e):
-    # print(col.values())
-    for cand in list(cols[e.origin].values()):
-        # print('CAND: [%s] %s -> %s (%d, %d)' % (e.type, e.nt, e.prod, e.origin, e.dot))
-        # print(cand.id())
-        if not cand.completed() and rules[cand.next()] and cand.next() == e.nt:
-            # print('%s completing %s' % (e.id(), cand.id()))
-            # print('cand %s children: %s' % (cand.id(), [e.id() for e in cand.children]))
-            # print('comp %s children: %s' % (e.id(), [e.id() for e in e.children]))
-            comp_ent = entry('comp', cand.nt, cand.prod, cand.origin, cand.dot+1)
-            comp_ent.children = cand.children[:] # Pass on children
-            comp_ent.children.append(e)         # Add child
-            add(cols[i], comp_ent)
-            # print('COMP: [%s] %s -> %s (%d, %d)' % (e.type, e.nt, e.prod, e.origin, e.dot))
-            if i == len(cols)-1 and comp_ent.nt == root and comp_ent.origin == 0 and comp_ent.completed():
-                return True
-    return False
 
 # Return the parse tree (list) for the given root entry of an Earley parse.
 def get_tree(rules, tokens, root):
@@ -594,60 +570,6 @@ def print_tree(root):
         else:
             print(' : %s' % rhs)
     rec(root, 0)
-
-# Return an Earley parser given a grammar. The parser returns the parse tree of
-# a given list of tokens or raises an error if there is more than one valid
-# parse of the list of tokens.
-def parser(root, rules):
-
-    # The Earley parser function
-    def parse(tokens):
-
-        # Initialize chart
-        cols = [OrderedDict() for i in range(len(tokens)+1)]
-        for prod in rules[root]:            # Add all possible root productions
-            e = entry('pred', root, prod, 0, 0)
-            add(cols[0], e)
-
-        # Fill chart
-        for (i, col) in enumerate(cols):
-            if not len(col):
-                raise SyntaxError('unexpected token "%s".' % tokens[i][1])       # TODO: line number for errors
-
-            # if i > 30: return
-            # l, r = tokens[i] if i < len(tokens) else ('','')
-            # print('=== col %d : %s %s ===' % (i, l, r))
-
-            j = 0
-            while j < len(col):
-                e = list(col.values())[j]
-                # print('entry: [%s] %s -> %s (%d, %d)' % (e.type, e.nt, e.prod, e.origin, e.dot))
-                # print('children: %s' % [c.id() for c in e.children])
-                if not e.completed():       # Uncompleted
-                    if rules[e.next()]:     # Nonterminal
-                        # print('pred')
-                        predict(rules, i, col, e)
-                    else:                   # Terminal
-                        # print('scan')
-                        if i+1 < len(cols):
-                            scan(tokens[i], i+1, cols[i+1], e)
-                else:                       # Completed
-                    # print('comp')
-                    if complete(root, rules, cols, i, e): break
-                j += 1
-
-        # Verify that there was a valid parse
-        roots = [e for e in cols[-1].values() if e.nt == root and e.origin == 0 and e.completed()]
-        if len(roots) != 1:                 # TODO: b/c of OrderedDict is a set, we'll never get multiple valid parses in last col
-            raise SyntaxError('expected 1 valid parse but got %d.' % str(len(roots)))
-            for rt in roots:              # Print valid parse trees for tokens
-                print_tree(get_tree(rules, tokens, rt))
-
-        # Return the valid parse tree
-        return normalize_tree(tlist, clist, get_tree(rules, tokens, roots[0]))
-
-    # Return parser function
-    return parse
 
 # Create a parser Python program file at the given path, based on the given spec
 # string.

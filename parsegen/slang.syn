@@ -6,9 +6,9 @@
 
 : num str id .. ... + - * / % ! && || == <= >= < > break
 
-% left * /
-% left + -
-% right =
+%left * /
+%left + -
+%right =
 
 # TODO: add logical op precedence/associativity
 
