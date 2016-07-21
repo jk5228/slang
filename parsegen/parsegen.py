@@ -204,17 +204,33 @@ def parse(tokens):
     # Return the valid parse tree
     return normalize_tree(tlist, clist, get_tree(rules, tokens, roots[0]))'''
 
+# The grammar object.
+class grammar(object):
+
+    def __init__(self, root, tlist, clist, rules, prec, assoc):
+        self.root = root                    # Root symbol string
+        self.tlist = tlist                  # List of terminals to keep in AST
+        self.clist = clist                  # List of nonterminals to omit from AST
+        self.rules = rules                  # Dictionary of production rules
+        self.prec = prec                    # Dictionary of precedence numbers
+        self.assoc = assoc                  # Dictionary of associativities
+        self.first = defaultdict(set)       # Dictionary of first sets
+        self.nullable = defaultdict(bool)   # Dictionary of nullabilities
+
 # Return a root nonterminal and defaultdict(list) of nonterminals mapped to
 # lists of productions for the given spec string.
 def parse_spec(spec):
     lines = spec.split('\n')
-    rules = defaultdict(list)
+    root = None
     tlist = []
     clist = []
+    rules = defaultdict(list)
+    prec = defaultdict(None)
+    assoc = defaultdict(None)
     ident = re.compile('\w+')
-    root = None
     checked_tlst = False
     i = 0
+    prec_ind = 0
 
     # Process lines
     while i < len(lines):
@@ -236,6 +252,24 @@ def parse_spec(spec):
                 tlist = terms[1:]
                 i += 1
                 continue
+
+        # Parse directive
+        if terms[0] == '%':
+
+            direction = None
+
+            if terms[1] == 'left':
+                direction = 'left'
+            elif terms[1] == 'right':
+                direction = 'right'
+
+            for term in terms[2:]:
+                prec[term] = prec_ind
+                assoc[term] = direction
+
+            prec_ind += 1
+            i += 1
+            continue
 
         # Validate format
         if not re.match(ident, terms[0]) or len(terms) == 1 or terms[1] not in ':<':
@@ -292,7 +326,7 @@ def parse_spec(spec):
         # Add last production (we know we don't have an implicit empty)
         rules[nonterm].append(prod)
 
-    return (root, tlist, clist, rules)
+    return grammar(root, tlist, clist, rules, prec, assoc)
 
 # LR(1) Parser generation code
 
@@ -304,6 +338,123 @@ def parse_spec(spec):
 # List of goto edges (state-nonterminal pairs)
 # Item object containing nt symbol, prod symbol list, pos, lookahead symbol
 # AST node object containing parent symbol, prod symbol list if any (need?), children list, start, end
+
+# An LR(1) parse table item.
+class item(object):
+
+    def __init__(self, nt, prod, dot, la):
+        self.nt = nt            # Nonterminal symbol
+        self.prod = prod        # Production symbol list
+        self.dot = dot          # Dot position
+        self.la = la            # Lookahead symbol
+
+    # Return whether the item is completed (i.e., the dot is at the end).
+    def completed(self):
+        return self.dot >= len(self.prod)
+
+    # Return the next symbol (i.e., the one on the dot) or None.
+    def next(self):
+        return None if self.completed() else self.prod[self.dot]
+
+    # Return a copy of the item with the dot advanced and the specified
+    # lookahead symbol (defaults to the current lookahead symbol). If the item
+    # is already completed, raise an error. Note: The "copy" will still point to
+    # the same nt and prod (since these shouldn't ever change). Only the dot and
+    # la will be updated.
+    def advance(self, la=None):
+        if self.completed():
+            raise ValueError('cannot advance completed item %s.' % (self.id()))
+        return item(self.nt, self.prod, self.dot+1, la if la else self.la)
+
+# Compute the first and nullable properties for each symbol in the given
+# grammar.
+def compute_props(grammar):
+
+    # Initialize all terminal first sets to contain just that terminal
+    for prods in grammar.rules.values():
+        for prod in prods:
+            for sym in prod:
+                if not grammar.rules.get(sym):
+                    grammar.first[sym] = set([sym])
+
+    changed = True
+
+    # Compute nonterminal first sets iteratively until fixpoint
+    while changed:
+        # print('changed')
+
+        changed = False
+
+        for (nt, prods) in grammar.rules.items():
+            # print(nt)
+            for prod in prods:
+                # print(prod)
+
+                # Set nullable
+                if not prod or all(grammar.nullable[sym] for sym in prod):
+                    old_val = grammar.nullable[nt]
+                    grammar.nullable[nt] = True
+                    changed = changed or not old_val
+
+                # Extend first sets
+                for i in range(len(prod)):
+                    if i == 0 or all(grammar.nullable[sym] for sym in prod[:i]):
+                        # print('%s: %s' % (nt, grammar.first[nt]))
+                        # print('%s: %s' % (prod[i], grammar.first[prod[i]]))
+                        old_len = len(grammar.first[nt])
+                        grammar.first[nt] = grammar.first[nt].union(grammar.first[prod[i]])
+                        # print('%s: %s' % (nt, grammar.first[nt]))
+                        changed = changed or old_len != len(grammar.first[nt])
+
+# Return the first set for a given rhs of a production.
+def first(grammar, prod):
+    res = set()
+    for sym in prod:
+        res.union(grammar.first[sym])
+        if not grammar.nullable[sym]: break
+    return res
+
+# Return whether the given rhs of a production is nullable.
+def nullable(grammar, prod):
+    return all(grammar.nullable[sym] for sym in prod)
+
+# Return the closure set given a set of items.
+def closure(grammar, items):
+
+    changed = True
+
+    while changed:
+
+        changed = False
+
+        for it in items:
+            for prod in grammar.rules[it.next()]:
+                first_set = first(grammar, prod)
+                if nullable(grammar, prod):
+                    first_set.add(it.la)
+                for sym in first_set:
+                    old_size = len(items)
+                    items.add(item(it.next(), prod, 0, sym))
+                    changed = changed or old_size != len(items)
+
+    return items
+
+# Return the goto set of items given a state and lookahead symbol.
+def goto(grammar, state, la):
+    j = set(it.advance() for it in state if it.next() == la)
+    return closure(grammar, j)
+
+# Return a generated LR(1) parse table (dict) given a grammar object.
+def generate_table(grammar):
+    states = []
+    shift = []
+    goto = []
+
+    # Compute first set and nullability for each symbol in the grammar
+    compute_props(grammar)
+    print(grammar.first)
+    print(grammar.nullable)
+
 
 # Add aux production rule S -> S$
 # Build T and E sets (p. 60)
@@ -501,23 +652,28 @@ def parser(root, rules):
 # Create a parser Python program file at the given path, based on the given spec
 # string.
 def parse_file(path, spec):
-    root, tlist, clist, rules = parse_spec(spec)
-    tlist = ['\'%s\'' % t for t in tlist]
-    clist = ['\'%s\'' % c for c in clist]
+    grammar = parse_spec(spec)
+    tlist = ['\'%s\'' % t for t in grammar.tlist]
+    clist = ['\'%s\'' % c for c in grammar.clist]
     rule_lst = []
 
-    # Convert rules dict to strings
-    for (lhs, rhs) in rules.items():
-        prods = []
-        for lst in rhs:
-            prods.append('[{0}]'.format(','.join('\'{0}\''.format(t) for t in lst)))
-        rule = '\'{0}\':[{1}]'.format(lhs, ','.join(prods))
-        rule_lst.append(rule)
+    print(grammar.prec)
+    print(grammar.assoc)
 
-    # Write file
-    f = open(path, 'w')
-    f.write(parseprog.format(root, ','.join(tlist), ','.join(clist), ','.join(rule_lst)))
-    f.close()
+    generate_table(grammar)
+
+    # # Convert rules dict to strings
+    # for (lhs, rhs) in rules.items():
+    #     prods = []
+    #     for lst in rhs:
+    #         prods.append('[{0}]'.format(','.join('\'{0}\''.format(t) for t in lst)))
+    #     rule = '\'{0}\':[{1}]'.format(lhs, ','.join(prods))
+    #     rule_lst.append(rule)
+
+    # # Write file
+    # f = open(path, 'w')
+    # f.write(parseprog.format(root, ','.join(tlist), ','.join(clist), ','.join(rule_lst)))
+    # f.close()
 
 # # Test code
 

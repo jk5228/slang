@@ -6,6 +6,12 @@
 
 : num str id .. ... + - * / % ! && || == <= >= < > break
 
+% left * /
+% left + -
+% right =
+
+# TODO: add logical op precedence/associativity
+
 prog     : stm*
 stmLst   : stm*
 stm*     < EMPTY
