@@ -6,18 +6,20 @@
 
 : num str id .. ... + - * / % ! && || == <= >= < > break
 
-%left * /
+%left !
+%left * / %
 %left + -
+%left &&
+%left ||
+%nonassoc == != <= >= < > .. ...
 %right =
-
-# TODO: add logical op precedence/associativity
 
 prog     : stm*
 stmLst   : stm*
 stm*     < EMPTY
          | stm+
 stm+     < stm
-         | stm stm*
+         | stm* stm
 stm      < line ;
          | block
 line     : exp
@@ -37,7 +39,7 @@ idLst    : id*
 id*      < EMPTY
          | id+
 id+      < id
-         | id , id+
+         | id+ , id
 exp      : ( exp )
          | prim
          | assign
@@ -62,22 +64,19 @@ expLst   : exp*
 exp*     < EMPTY
          | exp+
 exp+     < exp
-         | exp , exp+
+         | exp+ , exp
 arrAcc   : id [ exp ]
 funExp   : id ( expLst )
-arithExp : exp aOp2 exp
-aOp2     : +
-         | -
-         | *
-         | /
-         | %
-logExp   : lOp1 exp
-         | exp lOp2 exp
-lOp1     : !
-lOp2     : &&
-         | ||
-         | ==
-         | <=
-         | >=
-         | >
-         | <
+arithExp : exp + exp
+         | exp - exp
+         | exp * exp
+         | exp / exp
+         | exp % exp
+logExp   : ! exp
+         | exp && exp
+         | exp || exp
+         | exp == exp
+         | exp <= exp
+         | exp >= exp
+         | exp > exp
+         | exp < exp

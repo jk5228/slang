@@ -45,172 +45,7 @@ import re, time
 from collections import defaultdict, OrderedDict
 
 # Parser program
-parseprog = '''# A parser generated from parsegen.py.
-
-from collections import defaultdict, OrderedDict
-root = '{0}'
-tlist = [{1}]
-clist = [{2}]
-rules = defaultdict(list, {{{3}}})
-
-# An entry object in an Earley parse chart. Children is the pointer to the
-# children entries in the parse tree.
-class entry(object):
-    def __init__(self, type, nt, prod, origin, dot):
-        self.type = type
-        self.nt = nt
-        self.prod = prod
-        self.origin = origin
-        self.dot = dot
-        self.children = []
-
-    # Return a string id unique for each (nt, prod, origin) triple.
-    def id(self):
-        return '%s:%s:%s:%s' % (self.nt, self.prod, self.origin, self.dot)
-
-    # Return whether the production is completed.
-    def completed(self):
-        return self.dot >= len(self.prod)
-
-    # Return the next symbol to process.
-    def next(self):
-        if not self.completed():
-            return self.prod[self.dot]
-        else:
-            raise IndexError('no next term for completed production "%s".' % str(self.prod))
-
-# Add the entry to the column (OrderedDict) if there isn't already a rule with
-# the same id in the column.
-def add(col, e):
-    if not col.get(e.id()):
-        col[e.id()] = e
-
-# Add any predicted entries to the given column.
-def predict(rules, i, col, e):
-    for prod in rules[e.next()]:
-        add(col, entry('pred', e.next(), prod, i, 0))
-
-# Add the scanned entry to the given column if the next token is expected.
-def scan(token, i, col, e):
-    if e.next() == token[0]:
-        scan_ent = entry('scan', e.nt, e.prod, e.origin, e.dot+1)
-        scan_ent.children = e.children          # Pass on children
-        scan_ent.children.append(token)         # Add terminal
-        add(col, scan_ent)
-
-# Add the completed entry to the given column.
-def complete(roots, rules, cols, i, e):
-    # print(col.values())
-    for cand in list(cols[e.origin].values()):
-        # print('CAND: [%s] %s -> %s (%d, %d)' % (e.type, e.nt, e.prod, e.origin, e.dot))
-        # print(cand.id())
-        if not cand.completed() and rules[cand.next()] and cand.next() == e.nt:
-            # print('%s completing %s' % (e.id(), cand.id()))
-            # print('cand %s children: %s' % (cand.id(), [e.id() for e in cand.children]))
-            # print('comp %s children: %s' % (e.id(), [e.id() for e in e.children]))
-            comp_ent = entry('comp', cand.nt, cand.prod, cand.origin, cand.dot+1)
-            comp_ent.children = cand.children[:] # Pass on children
-            comp_ent.children.append(e)         # Add child
-            add(cols[i], comp_ent)
-            # print('COMP: [%s] %s -> %s (%d, %d)' % (e.type, e.nt, e.prod, e.origin, e.dot))
-            if i == len(cols)-1 and comp_ent.nt == root and comp_ent.origin == 0 and comp_ent.completed():
-                return True
-    return False
-
-
-# Return the parse tree (list) for the given root entry of an Earley parse.
-def get_tree(rules, tokens, root):
-    if type(root) != entry: return root
-    rhs = []
-    children = iter(root.children)
-    # print(root.children)
-    # print('%s: %s' % (root.nt, [e.id() for e in root.children]))
-    for child in root.children:
-        rhs.append(get_tree(rules, tokens, child))
-    return (root.nt, rhs)
-
-# Return the given parse tree after normalization. A normalized tree contains
-# none of the nonterminals in clist and all and only the terminals in tlist.
-def normalize_tree(tlist, clist, root):
-    def rec(root):
-        if not root: return []
-        lhs, rhs = root
-        if type(rhs) == list:       # Nonterminal
-            res_rhs = []
-            rhs = [rec(t) for t in rhs]
-            rhs = [item for sublist in rhs for item in sublist]
-            for t in rhs:
-                if type(t) == list: res_rhs.extend(t)
-                else: res_rhs.append(t)
-            if lhs in clist:        # Contracted nonterminal
-                return [res_rhs]
-            else:                   # Uncontracted nonterminal
-                return [(lhs, res_rhs)]
-        elif lhs in tlist:          # Preserved terminal
-                return [(lhs, rhs)]
-        else:                       # Unpreserved terminal
-            return []
-    return rec(root)[0]
-
-# Pretty print the parse tree, with subsequent levels indented to show nesting.
-def print_tree(root):
-    def rec(root, level):
-        if not root: return
-        lhs, rhs = root
-        print(('%s%s' % ('| '*level, lhs)), end='')
-        if type(rhs) == list:
-            print()
-            for term in rhs:
-                rec(term, level+1)
-        else:
-            print(' : %s' % rhs)
-    rec(root, 0)
-
-# The Earley parser function
-def parse(tokens):
-
-    # Initialize chart
-    cols = [OrderedDict() for i in range(len(tokens)+1)]
-    for prod in rules[root]:            # Add all possible root productions
-        e = entry('pred', root, prod, 0, 0)
-        add(cols[0], e)
-
-    # Fill chart
-    for (i, col) in enumerate(cols):
-        if not len(col):
-            raise SyntaxError('unexpected token "%s".' % tokens[i][1])       # TODO: line number for errors
-
-        # if i > 30: return
-        # l, r = tokens[i] if i < len(tokens) else ('','')
-        # print('=== col %d : %s %s ===' % (i, l, r))
-
-        j = 0
-        while j < len(col):
-            e = list(col.values())[j]
-            # print('entry: [%s] %s -> %s (%d, %d)' % (e.type, e.nt, e.prod, e.origin, e.dot))
-            # print('children: %s' % [c.id() for c in e.children])
-            if not e.completed():       # Uncompleted
-                if rules[e.next()]:     # Nonterminal
-                    # print('pred')
-                    predict(rules, i, col, e)
-                else:                   # Terminal
-                    # print('scan')
-                    if i+1 < len(cols):
-                        scan(tokens[i], i+1, cols[i+1], e)
-            else:                       # Completed
-                # print('comp')
-                if complete(root, rules, cols, i, e): break
-            j += 1
-
-    # Verify that there was a valid parse
-    roots = [e for e in cols[-1].values() if e.nt == root and e.origin == 0 and e.completed()]
-    if len(roots) != 1:                 # TODO: b/c of OrderedDict is a set, we'll never get multiple valid parses in last col
-        raise SyntaxError('expected 1 valid parse but got %s.' % str(len(roots)))
-        for rt in roots:              # Print valid parse trees for tokens
-            print_tree(get_tree(rules, tokens, rt))
-
-    # Return the valid parse tree
-    return normalize_tree(tlist, clist, get_tree(rules, tokens, roots[0]))'''
+parseprog = ''
 
 # The grammar object.
 class grammar(object):
@@ -224,6 +59,8 @@ class grammar(object):
         self.assoc = assoc                  # Dictionary of associativities
         self.first = defaultdict(set)       # Dictionary of first sets
         self.nullable = defaultdict(bool)   # Dictionary of nullabilities
+        self.start_sym = 'START_SYM'        # Start symbol
+        self.end_sym = 'END_SYM'            # End symbol
 
 # Return a root nonterminal and defaultdict(list) of nonterminals mapped to
 # lists of productions for the given spec string.
@@ -426,13 +263,21 @@ def compute_props(grammar):
 
                 # Extend first sets
                 for i in range(len(prod)):
+
                     if i == 0 or all(grammar.nullable[sym] for sym in prod[:i]):
+
                         # print('%s: %s' % (nt, grammar.first[nt]))
                         # print('%s: %s' % (prod[i], grammar.first[prod[i]]))
                         old_len = len(grammar.first[nt])
                         grammar.first[nt] |= grammar.first[prod[i]]
                         # print('%s: %s' % (nt, grammar.first[nt]))
                         changed = changed or old_len != len(grammar.first[nt])
+
+    # Compute props for entire production rule
+    for prods in grammar.rules.values():
+        for prod in prods:
+            grammar.first[str(prod)] = first(grammar, prod)
+            grammar.nullable[str(prod)] = nullable(grammar, prod)
 
 # Return the first set for a given rhs of a production.
 def first(grammar, prod):
@@ -456,11 +301,16 @@ def closure(grammar, items):
         changed = False
 
         for it in list(items):
+
             for prod in grammar.rules[it.next()]:
-                first_set = first(grammar, prod)
-                if nullable(grammar, prod):
+
+                first_set = grammar.first[str(prod)]
+
+                if grammar.nullable[str(prod)]:
                     first_set.add(it.la)
+
                 for sym in first_set:
+
                     old_len = len(items)
                     items.add(item(it.next(), prod, 0, sym))
                     changed = changed or len(items) != old_len
@@ -476,14 +326,18 @@ def goto(grammar, state, sym):
 # state if it is not in the state list. Note: This function assumes that states
 # are disjoint.
 def add_state(states, new):
-    equiv = [state for state in states if next(iter(new)) in state]
-    if len(equiv): return equiv[0]
+    # equiv = [state for state in states if next(iter(new)) in state] # <- !!!!!! probably the culprit
+    for state in states:
+        if state == new:
+            return state
+    print('OLD')
+    # exit(1)
     states.append(new)
     return new
 
 # Return the list of states and the set of (goto and shift) edges between states
 # given a grammar and start state.
-def generate_states(grammar, start):
+def generate_graph(grammar, start):
 
     states = [start]
     edges = set()
@@ -495,9 +349,16 @@ def generate_states(grammar, start):
         changed = False
 
         for (i, state) in enumerate(states):
+
             for it in (it for it in state if it.next()):
+
+                # TODO: might speed up if we compute edges later and just
+                #       compute states first so new edges can't cause unnecessary
+                #       iterations (when would it cause "unnecesary" iterations?)
+
                 new_state = goto(grammar, state, it.next())
                 old_state_len = len(states)
+                print(old_state_len)
                 new_state = add_state(states, new_state)
                 j = states.index(new_state)
                 old_edge_len = len(edges)
@@ -506,19 +367,48 @@ def generate_states(grammar, start):
 
     return (states, edges)
 
+# Return the parse table given a grammar and state graph.
+def generate_table(grammar, states, edges):
 
-# Return a generated LR(1) parse table (dict) given a grammar object.
-def generate_table(grammar):
+    table = [defaultdict(list) for state in states]
+
+    # Fill in goto and shift actions
+    for edge in edges:
+
+        i, x, j = edge
+
+        if grammar.rules[x]:                        # Nonterminal -> goto
+            table[i][x].append(('goto', j))
+        else:                                       # Terminal -> shift
+            if x == grammar.end_sym:
+                table[i][x].append(('accept'))
+            else:
+                table[i][x].append(('shift', j))
+
+    # Fill in reduce actions
+    for (i, state) in enumerate(states):
+
+        for it in (it for it in state if it.prod and it.la):
+
+            if it.nt == grammar.start_sym and it.next() == grammar.end_sym and it.la == grammar.end_sym:
+                table[i][it.la].append(('accept'))
+
+            elif it.completed():                    # Reduce
+                table[i][it.la].append(('reduce', it.nt, it.prod))
+
+    return table
+
+# Return a generated LR(1) parse table (dict<state number, dict<lookahead
+# symbol, action>>) given a grammar object.
+def get_table(grammar):
 
     # Start item
-    start_sym = 'START_SYM'
-    end_sym = 'END_SYM'
-    start_prod = [grammar.root, end_sym]
-    start_item = item(start_sym, start_prod, 0, None)
+    start_prod = [grammar.root, grammar.end_sym]
+    start_item = item(grammar.start_sym, start_prod, 0, None)
     start_set = set([start_item])
 
     # Add auxiliary root production rule
-    grammar.rules[start_sym] = [start_prod]
+    grammar.rules[grammar.start_sym] = [start_prod]
 
     # Compute first set and nullability for each symbol in the grammar
     compute_props(grammar)
@@ -526,18 +416,38 @@ def generate_table(grammar):
     # print(grammar.first)
     # print(grammar.nullable)
 
-    # Initialize the start state
+    # Initialize the graph
     start_state = closure(grammar, start_set)
 
     # print(start_state)
 
     # Construct rest of states
-    states, edges = generate_states(grammar, start_state)
+    states, edges = generate_graph(grammar, start_state)
 
-    for (i, state) in enumerate(states):
-        print('state %s:' % i)
-        print(state)
-    print(edges)
+    # for (i, state) in enumerate(states):
+    #     print('state %s:' % i)
+    #     print(state)
+    # print(edges)
+
+    # Construct table
+    conflicts = []
+    table = generate_table(grammar, states, edges)
+    for (i, state) in enumerate(table):
+        print('State %d:' % i)
+        print('  Items:')
+        for it in states[i]:
+            print('    %s' % it)
+        print('  Actions:')
+        for (la, action) in state.items():
+            print('    %s%s->  %s%s' % (la, ' '*(9-len(la)), action, '\t[CONFLICT]' if len(action) > 1 else ''))
+            if len(action) > 1:
+                conflicts.append('State %s: %s -> %s' % (i, la, action))
+        input()
+
+    print('Conflicts:')
+    for conflict in conflicts:
+        print(conflict)
+
 
 # Add aux production rule S -> S$
 # Build T and E sets (p. 60)
@@ -621,7 +531,7 @@ def parse_file(path, spec):
     # print(grammar.prec)
     # print(grammar.assoc)
 
-    generate_table(grammar)
+    table = get_table(grammar)
 
     # # Convert rules dict to strings
     # for (lhs, rhs) in rules.items():
