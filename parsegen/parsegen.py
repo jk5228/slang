@@ -430,7 +430,7 @@ def compute_props(grammar):
                         # print('%s: %s' % (nt, grammar.first[nt]))
                         # print('%s: %s' % (prod[i], grammar.first[prod[i]]))
                         old_len = len(grammar.first[nt])
-                        grammar.first[nt] = grammar.first[nt].union(grammar.first[prod[i]])
+                        grammar.first[nt] |= grammar.first[prod[i]]
                         # print('%s: %s' % (nt, grammar.first[nt]))
                         changed = changed or old_len != len(grammar.first[nt])
 
@@ -438,7 +438,7 @@ def compute_props(grammar):
 def first(grammar, prod):
     res = set()
     for sym in prod:
-        res = res.union(grammar.first[sym])
+        res |= grammar.first[sym]
         if not grammar.nullable[sym]: break
     return res
 
@@ -467,10 +467,45 @@ def closure(grammar, items):
 
     return items
 
-# Return the goto set of items given a state and lookahead symbol.
-def goto(grammar, state, la):
-    j = set(it.advance() for it in state if it.next() == la)
+# Return the goto set of items given a state and symbol.
+def goto(grammar, state, sym):
+    j = set(it.advance() for it in state if it.next() == sym)
     return closure(grammar, j)
+
+# Return the state or an equivalent state in the given state list and add the
+# state if it is not in the state list. Note: This function assumes that states
+# are disjoint.
+def add_state(states, new):
+    equiv = [state for state in states if next(iter(new)) in state]
+    if len(equiv): return equiv[0]
+    states.append(new)
+    return new
+
+# Return the list of states and the set of (goto and shift) edges between states
+# given a grammar and start state.
+def generate_states(grammar, start):
+
+    states = [start]
+    edges = set()
+    changed = True
+
+    # Generate states and goto edges
+    while changed:
+
+        changed = False
+
+        for (i, state) in enumerate(states):
+            for it in (it for it in state if it.next()):
+                new_state = goto(grammar, state, it.next())
+                old_state_len = len(states)
+                new_state = add_state(states, new_state)
+                j = states.index(new_state)
+                old_edge_len = len(edges)
+                edges.add((i, it.next(), j))
+                changed = changed or (len(states), len(edges)) != (old_state_len, old_edge_len)
+
+    return (states, edges)
+
 
 # Return a generated LR(1) parse table (dict) given a grammar object.
 def generate_table(grammar):
@@ -482,10 +517,6 @@ def generate_table(grammar):
     start_item = item(start_sym, start_prod, 0, None)
     start_set = set([start_item])
 
-    states = []
-    shift = []
-    goto = []
-
     # Add auxiliary root production rule
     grammar.rules[start_sym] = [start_prod]
 
@@ -496,9 +527,17 @@ def generate_table(grammar):
     # print(grammar.nullable)
 
     # Initialize the start state
-    states.append(closure(grammar, start_set))
+    start_state = closure(grammar, start_set)
 
-    print(states[0])
+    # print(start_state)
+
+    # Construct rest of states
+    states, edges = generate_states(grammar, start_state)
+
+    for (i, state) in enumerate(states):
+        print('state %s:' % i)
+        print(state)
+    print(edges)
 
 # Add aux production rule S -> S$
 # Build T and E sets (p. 60)
@@ -579,8 +618,8 @@ def parse_file(path, spec):
     clist = ['\'%s\'' % c for c in grammar.clist]
     rule_lst = []
 
-    print(grammar.prec)
-    print(grammar.assoc)
+    # print(grammar.prec)
+    # print(grammar.assoc)
 
     generate_table(grammar)
 
