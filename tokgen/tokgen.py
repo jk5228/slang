@@ -32,6 +32,7 @@ import re
 from itertools import chain
 
 tokprog = '''# A tokenizer generated from tokgen.py.
+# This code is automatically generate. Do not edit!
 
 import re
 from itertools import chain

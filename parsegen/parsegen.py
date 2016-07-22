@@ -41,11 +41,18 @@
 # nonterminal that will be contracted from the parse tree (i.e., it's children
 # become the children of the parent of the contracted nonterminal node).
 
-import re, time
+import re, time, pickle, action
 from collections import defaultdict, OrderedDict
 
 # Parser program
-parseprog = ''
+parseprog = '''# A parser generated from parsegen.py.
+# This code is automatically generate. Do not edit!
+
+import pickle
+import parsegen.action
+
+
+'''
 
 # The grammar object.
 class grammar(object):
@@ -231,48 +238,6 @@ class item(object):
             raise ValueError('cannot advance completed item %s.' % str(self))
         return item(self.nt, self.prod, self.dot+1, la if la else self.la)
 
-# An LR(1) parse table action.
-class action(object):
-    pass
-
-# An accept action.
-class ACCEPT(action):
-    
-    def __repr__(self):
-        return 'ACCEPT'
-
-# A goto action.
-class GOTO(action):
-    
-    def __init__(self, state_num, sym):
-        self.state_num = state_num
-        self.sym = sym
-
-    def __repr__(self):
-        return 'GOTO %d\t[ %s ]' % (self.state_num, self.sym)
-
-# A shift action.
-class SHIFT(action):
-    
-    def __init__(self, state_num, sym):
-        self.state_num = state_num
-        self.sym = sym
-
-    def __repr__(self):
-        return 'SHIFT %d\t[ %s ]' % (self.state_num, self.sym)
-
-# A reduce action.
-class REDUCE(action):
-    
-    def __init__(self, sym, nt, prod):
-        self.sym = sym
-        self.nt = nt
-        self.prod = prod
-        self.pop_num = len(prod)
-
-    def __repr__(self):
-        return 'REDUCE %d\t[ %s -> %s ]' % (self.pop_num, self.nt, ' '.join(self.prod))
-
 
 # Compute the first and nullable properties for each symbol in the given
 # grammar.
@@ -444,12 +409,12 @@ def generate_table(grammar, states, edges):
         i, x, j = edge
 
         if grammar.rules[x]:                                # Nonterminal -> goto
-            table[i][x] = GOTO(j, x)
+            table[i][x] = action.GOTO(j, x)
         else:                                               # Terminal -> shift
             if x == grammar.end_sym:
-                table[i][x] = ACCEPT()
+                table[i][x] = action.ACCEPT()
             else:
-                table[i][x] = SHIFT(j, x)
+                table[i][x] = action.SHIFT(j, x)
 
     # Fill in reduce actions
     for (i, state) in enumerate(states):
@@ -457,11 +422,11 @@ def generate_table(grammar, states, edges):
         for it in (it for it in state if it.prod and it.la):
 
             if is_acceptable(grammar, it):
-                table[i][it.la] = ACCEPT()
+                table[i][it.la] = action.ACCEPT()
 
             elif it.completed():                            # Reduce
 
-                new_action = REDUCE(last_terminal(grammar, it.prod), it.nt, it.prod)
+                new_action = action.REDUCE(last_terminal(grammar, it.prod), it.nt, it.prod)
                 old_action = table[i][it.la]
 
 
@@ -471,13 +436,13 @@ def generate_table(grammar, states, edges):
 
                 else:                                       # Conflict
 
-                    if type(old_action) == REDUCE:          # Reduce-reduce
+                    if type(old_action) == action.REDUCE:   # Reduce-reduce
 
                         table[i][it.la] = [old_action, new_action]
 
                     else:                                   # Shift-reduce
 
-                        # print('SHIFT-REDUCE conflict')
+                        # print('action.SHIFT-action.REDUCE conflict')
 
                         s = old_action
                         r = new_action
@@ -636,34 +601,34 @@ def parse_file(path, spec):
     # Pack table (nested dict) into a single flat defaultdict(lambda: None) accessed by (state_num, sym)
     # Pickle table (seems to work as expected with custom classes)
     # Generate parser that unpickles table and runs parser engine
-    # Parse template needs: pickled table fname, end_sym, action classes
+    # Parse template needs: pickled table fname, end_sym, action and node classes
 
-    # LR(1) parsing engine:
-    #   reduced = False
-    #   state_stk = [0]
-    #   stack = []
-    #
-    #   while True:
+    # # LR(1) parsing engine:
+    # reduced = False
+    # state_stk = [0]
+    # stack = []
+
+    # while True:
     #     action = table[state_stk[-1]][tok.next() if tok.next() else grammar.end_sym]
-    #     if reduced:
-    #       reduced = False
-    #       action = table[state_stk[-1]][stack[-1]]
-    #       state_stk.append(action.state_num)
-    #       continue
+    #     if reduced:                             # GOTO
+    #         reduced = False
+    #         action = table[state_stk[-1]][stack[-1]]
+    #         state_stk.append(action.state_num)
+    #         continue
     #     reduced = False
-    #     elif type(action) == SHIFT:
-    #       tok.pop()
-    #     elif type(action) == REDUCE:
-    #       children = stack[len(stack)-action.pop_num:]
-    #       for i in range(action.pop_num):
-    #         stack.pop()
-    #         state_stk.pop()
-    #       stack.append(node(action.nt, children))
-    #       reduced = True
-    #     elif type(action) == ACCEPT:
-    #       return stack[0]
+    #     if type(action) == action.SHIFT:        # SHIFT
+    #         tok.pop()
+    #     elif type(action) == action.REDUCE:     # REDUCE
+    #         children = stack[len(stack)-action.pop_num:]
+    #         for i in range(action.pop_num):
+    #             stack.pop()
+    #             state_stk.pop()
+    #         stack.append(node(action.nt, children))
+    #         reduced = True
+    #     elif type(action) == action.ACCEPT:     # ACCEPT
+    #         return stack[0]
     #     else:
-    #       raise SyntaxError('unexpected token %s' % tok.next() if tok.next() else grammar.end_sym)
+    #         raise SyntaxError('unexpected token %s' % tok.next() if tok.next() else grammar.end_sym)
 
     # # Write file
     # f = open(path, 'w')
