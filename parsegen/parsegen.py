@@ -330,7 +330,6 @@ def add_state(states, new):
     for state in states:
         if state == new:
             return state
-    print('OLD')
     # exit(1)
     states.append(new)
     return new
@@ -342,6 +341,7 @@ def generate_graph(grammar, start):
     states = [start]
     edges = set()
     changed = True
+    checked = defaultdict(lambda: defaultdict(bool))
 
     # Generate states and goto edges
     while changed:
@@ -350,19 +350,15 @@ def generate_graph(grammar, start):
 
         for (i, state) in enumerate(states):
 
-            for it in (it for it in state if it.next()):
+            for sym in set(it.next() for it in state if it.next() and not checked[i][it.next()]):
 
-                # TODO: might speed up if we compute edges later and just
-                #       compute states first so new edges can't cause unnecessary
-                #       iterations (when would it cause "unnecesary" iterations?)
-
-                new_state = goto(grammar, state, it.next())
+                checked[i][sym] = True
+                new_state = goto(grammar, state, sym)
                 old_state_len = len(states)
-                print(old_state_len)
                 new_state = add_state(states, new_state)
                 j = states.index(new_state)
                 old_edge_len = len(edges)
-                edges.add((i, it.next(), j))
+                edges.add((i, sym, j))
                 changed = changed or (len(states), len(edges)) != (old_state_len, old_edge_len)
 
     return (states, edges)
