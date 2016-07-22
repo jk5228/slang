@@ -1,6 +1,22 @@
-a : b a a | c
-b : d
-  | e
-  | f
-c : a | b
-a : EMPTY
+%left !
+%left * / %
+%left + -
+%left &&
+%left ||
+%nonassoc == != <= >= < > .. ...
+%right =
+
+exp : num
+		| exp + exp
+    | exp - exp
+    | exp * exp
+    | exp / exp
+    | exp % exp
+		| ! exp
+    | exp && exp
+    | exp || exp
+    | exp == exp
+    | exp <= exp
+    | exp >= exp
+    | exp > exp
+    | exp < exp

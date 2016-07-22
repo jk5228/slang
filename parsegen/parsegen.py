@@ -70,12 +70,12 @@ def parse_spec(spec):
     tlist = []
     clist = []
     rules = defaultdict(list)
-    prec = defaultdict(None)
-    assoc = defaultdict(None)
+    prec = defaultdict(lambda: None)
+    assoc = defaultdict(lambda: None)
     ident = re.compile('\w+')
     checked_tlst = False
     i = 0
-    prec_ind = 0
+    prec_ind = 1
 
     # Process lines
     while i < len(lines):
@@ -110,7 +110,7 @@ def parse_spec(spec):
             elif terms[0][1:] != 'nonassoc':
                 raise SyntaxError('undefined directive %s.' % terms[0])
 
-            for term in terms[2:]:
+            for term in terms[1:]:
                 prec[term] = prec_ind
                 assoc[term] = direction
 
@@ -231,6 +231,49 @@ class item(object):
             raise ValueError('cannot advance completed item %s.' % str(self))
         return item(self.nt, self.prod, self.dot+1, la if la else self.la)
 
+# An LR(1) parse table action.
+class action(object):
+    pass
+
+# An accept action.
+class ACCEPT(action):
+    
+    def __repr__(self):
+        return 'ACCEPT'
+
+# A goto action.
+class GOTO(action):
+    
+    def __init__(self, state_num, sym):
+        self.state_num = state_num
+        self.sym = sym
+
+    def __repr__(self):
+        return 'GOTO %d\t[ %s ]' % (self.state_num, self.sym)
+
+# A shift action.
+class SHIFT(action):
+    
+    def __init__(self, state_num, sym):
+        self.state_num = state_num
+        self.sym = sym
+
+    def __repr__(self):
+        return 'SHIFT %d\t[ %s ]' % (self.state_num, self.sym)
+
+# A reduce action.
+class REDUCE(action):
+    
+    def __init__(self, sym, nt, prod):
+        self.sym = sym
+        self.nt = nt
+        self.prod = prod
+        self.pop_num = len(prod)
+
+    def __repr__(self):
+        return 'REDUCE %d\t[ %s -> %s ]' % (self.pop_num, self.nt, ' '.join(self.prod))
+
+
 # Compute the first and nullable properties for each symbol in the given
 # grammar.
 def compute_props(grammar):
@@ -271,6 +314,20 @@ def compute_props(grammar):
                         # print('%s: %s' % (nt, grammar.first[nt]))
                         changed = changed or old_len != len(grammar.first[nt])
 
+    # TODO: why did this make things go so much slower?
+    # # Compute first and nullable for all subproductions
+    # grammar.nullable['[]'] = True
+    # grammar.first['[]'] = set()
+    # for prods in grammar.rules.values():
+    #     for prod in prods:
+    #         for i in range(len(prod)):
+    #             subprod = prod[i:]
+    #             grammar.nullable[str(subprod)] = nullable(grammar, subprod)
+    #             grammar.first[str(subprod)] = first(grammar, subprod)
+
+    # print(grammar.nullable)
+    # print(grammar.first)
+
 # Return the first set for a given list of symbols.
 def first(grammar, syms):
     res = set()
@@ -284,9 +341,10 @@ def nullable(grammar, syms):
     return all(grammar.nullable[sym] for sym in syms)
 
 # Return the closure set given a set of items.
-def closure(grammar, items):
+def closure_set(grammar, items):
 
     changed = True
+    done = defaultdict(bool)
 
     while changed:
 
@@ -294,8 +352,11 @@ def closure(grammar, items):
 
         for it in list(items):
 
+            if done[it]: continue
+
             for prod in grammar.rules[it.next()]:
 
+                # subprod_str = str(it.prod[it.dot+1:])
                 first_set = first(grammar, it.prod[it.dot+1:])
 
                 if nullable(grammar, it.prod[it.dot+1:]):
@@ -307,23 +368,25 @@ def closure(grammar, items):
                     items.add(item(it.next(), prod, 0, sym))
                     changed = changed or len(items) != old_len
 
+            done[it] = True
+
     return items
 
 # Return the goto set of items given a state and symbol.
-def goto(grammar, state, sym):
+def goto_set(grammar, state, sym):
     j = set(it.advance() for it in state if it.next() == sym)
-    return closure(grammar, j)
+    return closure_set(grammar, j)
 
-# Return the state or an equivalent state in the given state list and add the
-# state if it is not in the state list. Note: This function assumes that states
-# are disjoint.
+# Return the index and state or an equivalent state in the given state list and
+# add the state if it is not in the state list. Note: This function assumes that
+# states are disjoint.
 def add_state(states, new):
-    for state in states:
+    for (i, state) in enumerate(states):
         if state == new:
-            return state
+            return (i, state)
     # exit(1)
     states.append(new)
-    return new
+    return (len(states)-1, new)
 
 # Return the list of states and the set of (goto and shift) edges between states
 # given a grammar and start state.
@@ -333,6 +396,7 @@ def generate_graph(grammar, start):
     edges = set()
     changed = True
     checked = defaultdict(lambda: defaultdict(bool))
+    done = defaultdict(bool)
 
     # Generate states and goto edges
     while changed:
@@ -341,52 +405,120 @@ def generate_graph(grammar, start):
 
         for (i, state) in enumerate(states):
 
+            if done[i]: continue
+
             for sym in set(it.next() for it in state if it.next() and not checked[i][it.next()]):
 
                 checked[i][sym] = True
-                new_state = goto(grammar, state, sym)
+                new_state = goto_set(grammar, state, sym)
                 old_state_len = len(states)
-                new_state = add_state(states, new_state)
-                j = states.index(new_state)
+                j, new_state = add_state(states, new_state)
+                # print(len(states))
                 old_edge_len = len(edges)
                 edges.add((i, sym, j))
-                changed = changed or (len(states), len(edges)) != (old_state_len, old_edge_len)
+                updated = len(states) != old_state_len or len(edges) != old_edge_len
+                changed = changed or updated
+                done[i] = not updated
 
     return (states, edges)
+
+# Return the last terminal symbol in the symbol list or None.
+def last_terminal(grammar, syms):
+    terms = [sym for sym in syms if not grammar.rules[sym]]
+    if len(terms): return terms[-1]
+    return None
+
+# Return whether the item is an acceptable item.
+def is_acceptable(grammar, it):
+    return it.nt == grammar.start_sym and it.next() == grammar.end_sym\
+                                      and it.la == grammar.end_sym
 
 # Return the parse table given a grammar and state graph.
 def generate_table(grammar, states, edges):
 
-    table = [defaultdict(list) for state in states]
+    table = [defaultdict(lambda: None) for state in states]
 
     # Fill in goto and shift actions
     for edge in edges:
 
         i, x, j = edge
 
-        if grammar.rules[x]:                        # Nonterminal -> goto
-            table[i][x].append(('goto', j))
-        else:                                       # Terminal -> shift
+        if grammar.rules[x]:                                # Nonterminal -> goto
+            table[i][x] = GOTO(j, x)
+        else:                                               # Terminal -> shift
             if x == grammar.end_sym:
-                table[i][x].append(('accept'))
+                table[i][x] = ACCEPT()
             else:
-                table[i][x].append(('shift', j))
+                table[i][x] = SHIFT(j, x)
 
     # Fill in reduce actions
     for (i, state) in enumerate(states):
 
         for it in (it for it in state if it.prod and it.la):
 
-            if it.nt == grammar.start_sym and it.next() == grammar.end_sym and it.la == grammar.end_sym:
-                table[i][it.la].append(('accept'))
+            if is_acceptable(grammar, it):
+                table[i][it.la] = ACCEPT()
 
-            elif it.completed():                    # Reduce
-                table[i][it.la].append(('reduce', it.nt, it.prod))
+            elif it.completed():                            # Reduce
+
+                new_action = REDUCE(last_terminal(grammar, it.prod), it.nt, it.prod)
+                old_action = table[i][it.la]
+
+
+                if not old_action:
+
+                    table[i][it.la] = new_action
+
+                else:                                       # Conflict
+
+                    if type(old_action) == REDUCE:          # Reduce-reduce
+
+                        table[i][it.la] = [old_action, new_action]
+
+                    else:                                   # Shift-reduce
+
+                        # print('SHIFT-REDUCE conflict')
+
+                        s = old_action
+                        r = new_action
+
+                        # print('  s: {0}, {1}'.format(s, grammar.prec[s.sym]))
+                        # print('  r: {0}, {1}'.format(r, grammar.prec[r.sym]))
+
+                        if s.sym == r.sym or grammar.prec[s.sym] == grammar.prec[r.sym]:
+
+                            # print('  same prec')
+
+                            direction = grammar.assoc[s.sym]
+                            # print('s: %s, dir: %s' % (s, direction))
+
+                            if direction == 'left':
+                                continue
+                            elif direction == 'right':
+                                table[i][it.la] = r
+                            else:
+                                # print('set to None:')
+                                # print('  s: %s' % s.sym)
+                                # print('  r: %s' % r.sym)
+                                table[i][it.la] = None
+
+                        elif grammar.prec[s.sym] and grammar.prec[r.sym]:
+
+                            # print('  different prec')
+
+                            if grammar.prec[s.sym] < grammar.prec[r.sym]:
+                                continue
+                            else:
+                                table[i][it.la] = r
+
+                        else:                               # Unresolved
+
+                            table[i][it.la] = [old_action, new_action]
 
     return table
 
 # Print the parse table and a list of conflicts.
-def print_table(table):
+def print_table(states, table):
     conflicts = []
     for (i, state) in enumerate(table):
         print('State %d:' % i)
@@ -395,14 +527,13 @@ def print_table(table):
             print('    %s' % it)
         print('  Actions:')
         for (la, action) in state.items():
-            print('    %s%s->  %s%s' % (la, ' '*(9-len(la)), action, '\t[CONFLICT]' if len(action) > 1 else ''))
-            if len(action) > 1:
+            print('    %s%s->  %s%s' % (la, ' '*(9-len(la)), action, '\t[CONFLICT]' if type(action) == list else ''))
+            if type(action) == list:
                 conflicts.append('State %s: %s -> %s' % (i, la, action))
-        # input()
 
     print('Conflicts (%s total):' % len(conflicts))
     for conflict in conflicts:
-        print(conflict)
+        print('  ' + conflict)
 
 # Return a generated LR(1) parse table (dict<state number, dict<lookahead
 # symbol, action>>) given a grammar object.
@@ -423,44 +554,21 @@ def get_table(grammar):
     # print(grammar.nullable)
 
     # Initialize the graph
-    start_state = closure(grammar, start_set)
-
-    # print(start_state)
+    start_state = closure_set(grammar, start_set)
 
     # Construct rest of states
     states, edges = generate_graph(grammar, start_state)
 
-    # for (i, state) in enumerate(states):
-    #     print('state %s:' % i)
-    #     print(state)
-    # print(edges)
-
     # Construct table
-    table = generate_table(grammar, states, edges)      # TODO: reason for no operator conflicts is ops are never in first sets (what else is omitted?)
+    table = generate_table(grammar, states, edges)
 
     # Print table
-    print_table(table)
+    print_table(states, table)
 
-# Add aux production rule S -> S$
-# Build T and E sets (p. 60)
+    # To include positions for error messages:
+    # Extract from underlying token objects
 
-# To make table:
-
-# Data structures:
-# Final LR table is dict<state number, dict<lookahead symbol, action>>
-
-# Accept action for each state with S -> S.$ item
-# Reduce for each item with dot at end
-
-# To deal with precedence/associativity (left, right, nonassoc):
-# Dict of precedences of terminals (map terminal to number [assigned by incrementing cnt as directives processed])
-# defaultdict(None) of associativity (left, right, None = nonassoc)
-# Whenever shift-reduce conflict between ordered ops, consult prec dict and pick whichever is higher
-
-# To include positions for error messages:
-# Extract from underlying token objects
-
-# Allow Python semantic actions for each production in .syn?
+    # Allow Python semantic actions for each production in .syn?
 
 
 
