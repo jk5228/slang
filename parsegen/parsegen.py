@@ -563,7 +563,7 @@ def get_table(grammar):
     table = generate_table(grammar, states, edges)
 
     # Print table
-    print_table(states, table)
+    # print_table(states, table)
 
     # To include positions for error messages:
     # Extract from underlying token objects
@@ -633,13 +633,37 @@ def parse_file(path, spec):
 
     table = get_table(grammar)
 
-    # # Convert rules dict to strings
-    # for (lhs, rhs) in rules.items():
-    #     prods = []
-    #     for lst in rhs:
-    #         prods.append('[{0}]'.format(','.join('\'{0}\''.format(t) for t in lst)))
-    #     rule = '\'{0}\':[{1}]'.format(lhs, ','.join(prods))
-    #     rule_lst.append(rule)
+    # Pack table (nested dict) into a single flat defaultdict(lambda: None) accessed by (state_num, sym)
+    # Pickle table (seems to work as expected with custom classes)
+    # Generate parser that unpickles table and runs parser engine
+    # Parse template needs: pickled table fname, end_sym, action classes
+
+    # LR(1) parsing engine:
+    #   reduced = False
+    #   state_stk = [0]
+    #   stack = []
+    #
+    #   while True:
+    #     action = table[state_stk[-1]][tok.next() if tok.next() else grammar.end_sym]
+    #     if reduced:
+    #       reduced = False
+    #       action = table[state_stk[-1]][stack[-1]]
+    #       state_stk.append(action.state_num)
+    #       continue
+    #     reduced = False
+    #     elif type(action) == SHIFT:
+    #       tok.pop()
+    #     elif type(action) == REDUCE:
+    #       children = stack[len(stack)-action.pop_num:]
+    #       for i in range(action.pop_num):
+    #         stack.pop()
+    #         state_stk.pop()
+    #       stack.append(node(action.nt, children))
+    #       reduced = True
+    #     elif type(action) == ACCEPT:
+    #       return stack[0]
+    #     else:
+    #       raise SyntaxError('unexpected token %s' % tok.next() if tok.next() else grammar.end_sym)
 
     # # Write file
     # f = open(path, 'w')
