@@ -246,14 +246,12 @@ def compute_props(grammar):
 
     # Compute nonterminal first sets iteratively until fixpoint
     while changed:
-        # print('changed')
 
         changed = False
 
         for (nt, prods) in grammar.rules.items():
-            # print(nt)
+
             for prod in prods:
-                # print(prod)
 
                 # Set nullable
                 if not prod or all(grammar.nullable[sym] for sym in prod):
@@ -273,23 +271,17 @@ def compute_props(grammar):
                         # print('%s: %s' % (nt, grammar.first[nt]))
                         changed = changed or old_len != len(grammar.first[nt])
 
-    # Compute props for entire production rule
-    for prods in grammar.rules.values():
-        for prod in prods:
-            grammar.first[str(prod)] = first(grammar, prod)
-            grammar.nullable[str(prod)] = nullable(grammar, prod)
-
-# Return the first set for a given rhs of a production.
-def first(grammar, prod):
+# Return the first set for a given list of symbols.
+def first(grammar, syms):
     res = set()
-    for sym in prod:
+    for sym in syms:
         res |= grammar.first[sym]
         if not grammar.nullable[sym]: break
     return res
 
-# Return whether the given rhs of a production is nullable.
-def nullable(grammar, prod):
-    return all(grammar.nullable[sym] for sym in prod)
+# Return whether the given list of symbols is nullable.
+def nullable(grammar, syms):
+    return all(grammar.nullable[sym] for sym in syms)
 
 # Return the closure set given a set of items.
 def closure(grammar, items):
@@ -304,9 +296,9 @@ def closure(grammar, items):
 
             for prod in grammar.rules[it.next()]:
 
-                first_set = grammar.first[str(prod)]
+                first_set = first(grammar, it.prod[it.dot+1:])
 
-                if grammar.nullable[str(prod)]:
+                if nullable(grammar, it.prod[it.dot+1:]):
                     first_set.add(it.la)
 
                 for sym in first_set:
@@ -326,7 +318,6 @@ def goto(grammar, state, sym):
 # state if it is not in the state list. Note: This function assumes that states
 # are disjoint.
 def add_state(states, new):
-    # equiv = [state for state in states if next(iter(new)) in state] # <- !!!!!! probably the culprit
     for state in states:
         if state == new:
             return state
@@ -394,6 +385,25 @@ def generate_table(grammar, states, edges):
 
     return table
 
+# Print the parse table and a list of conflicts.
+def print_table(table):
+    conflicts = []
+    for (i, state) in enumerate(table):
+        print('State %d:' % i)
+        print('  Items:')
+        for it in states[i]:
+            print('    %s' % it)
+        print('  Actions:')
+        for (la, action) in state.items():
+            print('    %s%s->  %s%s' % (la, ' '*(9-len(la)), action, '\t[CONFLICT]' if len(action) > 1 else ''))
+            if len(action) > 1:
+                conflicts.append('State %s: %s -> %s' % (i, la, action))
+        # input()
+
+    print('Conflicts (%s total):' % len(conflicts))
+    for conflict in conflicts:
+        print(conflict)
+
 # Return a generated LR(1) parse table (dict<state number, dict<lookahead
 # symbol, action>>) given a grammar object.
 def get_table(grammar):
@@ -426,24 +436,10 @@ def get_table(grammar):
     # print(edges)
 
     # Construct table
-    conflicts = []
-    table = generate_table(grammar, states, edges)
-    for (i, state) in enumerate(table):
-        print('State %d:' % i)
-        print('  Items:')
-        for it in states[i]:
-            print('    %s' % it)
-        print('  Actions:')
-        for (la, action) in state.items():
-            print('    %s%s->  %s%s' % (la, ' '*(9-len(la)), action, '\t[CONFLICT]' if len(action) > 1 else ''))
-            if len(action) > 1:
-                conflicts.append('State %s: %s -> %s' % (i, la, action))
-        input()
+    table = generate_table(grammar, states, edges)      # TODO: reason for no operator conflicts is ops are never in first sets (what else is omitted?)
 
-    print('Conflicts:')
-    for conflict in conflicts:
-        print(conflict)
-
+    # Print table
+    print_table(table)
 
 # Add aux production rule S -> S$
 # Build T and E sets (p. 60)
