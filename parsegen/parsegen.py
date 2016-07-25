@@ -41,7 +41,7 @@
 # nonterminal that will be contracted from the parse tree (i.e., it's children
 # become the children of the parent of the contracted nonterminal node).
 
-import re, time, pickle, action
+import re, time, pickle, action, node
 from collections import defaultdict, OrderedDict
 
 # Parser program
@@ -69,8 +69,7 @@ class grammar(object):
         self.start_sym = 'START_SYM'        # Start symbol
         self.end_sym = 'END_SYM'            # End symbol
 
-# Return a root nonterminal and defaultdict(list) of nonterminals mapped to
-# lists of productions for the given spec string.
+# Return a grammar object for the given spec string.
 def parse_spec(spec):
     lines = spec.split('\n')
     root = None
@@ -458,9 +457,9 @@ def generate_table(grammar, states, edges):
                             # print('s: %s, dir: %s' % (s, direction))
 
                             if direction == 'left':
-                                continue
-                            elif direction == 'right':
                                 table[i][it.la] = r
+                            elif direction == 'right':
+                                continue
                             else:
                                 # print('set to None:')
                                 # print('  s: %s' % s.sym)
@@ -530,6 +529,8 @@ def get_table(grammar):
     # Print table
     # print_table(states, table)
 
+    return table
+
     # To include positions for error messages:
     # Extract from underlying token objects
 
@@ -598,54 +599,91 @@ def parse_file(path, spec):
 
     table = get_table(grammar)
 
-    # Pack table (nested dict) into a single flat defaultdict(lambda: None) accessed by (state_num, sym)
-    # Pickle table (seems to work as expected with custom classes)
-    # Generate parser that unpickles table and runs parser engine
-    # Parse template needs: pickled table fname, end_sym, action and node classes
-
-    # # LR(1) parsing engine:
-    # reduced = False
-    # state_stk = [0]
-    # stack = []
-
-    # while True:
-    #     action = table[state_stk[-1]][tok.next() if tok.next() else grammar.end_sym]
-    #     if reduced:                             # GOTO
-    #         reduced = False
-    #         action = table[state_stk[-1]][stack[-1]]
-    #         state_stk.append(action.state_num)
-    #         continue
-    #     reduced = False
-    #     if type(action) == action.SHIFT:        # SHIFT
-    #         tok.pop()
-    #     elif type(action) == action.REDUCE:     # REDUCE
-    #         children = stack[len(stack)-action.pop_num:]
-    #         for i in range(action.pop_num):
-    #             stack.pop()
-    #             state_stk.pop()
-    #         stack.append(node(action.nt, children))
-    #         reduced = True
-    #     elif type(action) == action.ACCEPT:     # ACCEPT
-    #         return stack[0]
-    #     else:
-    #         raise SyntaxError('unexpected token %s' % tok.next() if tok.next() else grammar.end_sym)
+    return (grammar, table)
 
     # # Write file
     # f = open(path, 'w')
     # f.write(parseprog.format(root, ','.join(tlist), ','.join(clist), ','.join(rule_lst)))
     # f.close()
 
+# Pack table (nested dict) into a single flat defaultdict(lambda: None) accessed by (state_num, sym)
+# Pickle table (seems to work as expected with custom classes)
+# Generate parser that unpickles table and runs parser engine
+# Parse template needs: pickled table fname, end_sym, action and node classes
+
+# TODO:
+# - test all this stuff below and put it into the template
+# - pickle/unpickle
+# - restructure packages so intepreter can import all the requisite modules
+# - update tokgen.py to return tokenizer object that streams tokens (instead of list)
+# - update tokenizer to include positions for error messages
+
+def parser(gram, table, tokens):
+    # LR(1) parsing engine:
+    state_stk = [0]
+    stack = []
+    token = None
+    act = None
+
+    while True:
+
+        print('stack: %s' % str(stack))
+        print('state stack: %s' % str(state_stk))
+
+        # Get next token
+        if not token:
+            try:
+                token = next(tokens)
+            except StopIteration:
+                token = (gram.end_sym, gram.end_sym)
+
+        print('token: {0}'.format(token))
+
+        # Get next action
+        act = table[state_stk[-1]][token[0]]
+        print('action: %s' % act)
+
+        if not act:                         # ERROR
+
+            raise SyntaxError('unexpected token %s' % str(token))
+
+        elif type(act) == action.SHIFT:     # SHIFT
+
+            t = node.node(token[0], token[1])
+            print('t.nt: %s' % t.nt)
+            print('t.children: %s' % t.children)
+            stack.append(t)
+            state_stk.append(act.state_num)
+            token = None
+
+        elif type(act) == action.REDUCE:    # REDUCE
+
+            children = stack[len(stack)-act.pop_num:]
+            for i in range(act.pop_num):
+                stack.pop()
+                state_stk.pop()
+            t = node.node(act.nt, children)
+            print('t.nt: %s' % t.nt)
+            print('t.children: %s' % t.children)
+            stack.append(t)
+            act = table[state_stk[-1]][t.nt]
+            print('action: %s' % act)
+            state_stk.append(act.state_num)
+
+        elif type(act) == action.ACCEPT:    # ACCEPT
+
+            return stack[-1]
+
 # # Test code
 
-# syn = open('slang.syn', 'r').read()
-# root, rules = parse_spec(syn)
-# # print(root, rules)
-# parser = parser(root, rules)
+# spec = open('sample.syn', 'r').read()
+# print(root, rules)
+# gram, table = parse_file('', spec)
 
-# When executed, take filepath fpath and spec filepath sfpath arguments and
-# write a parser program to fpath given the spec at sfpath.
-if __name__ == "__main__":
-    from sys import argv
-    fpath = argv[1]
-    spec = open(argv[2], 'r').read()
-    parse_file(fpath, spec)
+# # When executed, take filepath fpath and spec filepath sfpath arguments and
+# # write a parser program to fpath given the spec at sfpath.
+# if __name__ == "__main__":
+#     from sys import argv
+#     fpath = argv[1]
+#     spec = open(argv[2], 'r').read()
+#     parse_file(fpath, spec)
