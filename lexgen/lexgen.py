@@ -16,12 +16,12 @@
 #
 #       label [ : | < ] pattern
 #
-# Whitespace is ignored. Lines in the spec beginning with "#" are ignored.
-# Literals are matched before patterns. The separator ":" denotes a pattern that
-# should be included in the token list and the separator "<" denotes a pattern
-# that should be omitted from the token list. To use only a particular group of
-# a matched pattern as the value of the token, name that group "val" according
-# to the Python re module convention
+# Patterns are matched using the re.DOTALL and re.MULTILINE flags. Lines in the
+# spec beginning with "#" are ignored. Literals are matched before patterns. The
+# separator ":" denotes a pattern that should be included in the token list and
+# the separator "<" denotes a pattern that should be omitted from the token
+# list. To use only a particular group of a matched pattern as the value of the
+# token, name that group "val" according to the Python re module convention
 #
 #       ...(?P<val>pattern)...
 #
@@ -75,7 +75,7 @@ def lexer_file(path, spec):
         if typ == '=':
             triple_strs.append('(\'%s\', \'%s\', re.compile(re.escape(\'%s\')))' % (label, typ, value))
         else:
-            triple_strs.append('(\'%s\', \'%s\', re.compile(\'%s\'))' % (label, typ, value))
+            triple_strs.append('(\'%s\', \'%s\', re.compile(\'%s\', re.DOTALL|re.MULTILINE))' % (label, typ, value))
 
     # Write file
     temp_str = open(template_path, 'r').read()

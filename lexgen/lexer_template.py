@@ -8,7 +8,7 @@ triples = [{0}]
 
 # Return the number of newlines in the match object.
 def countlines(match):
-    return sum(group.count('\n') for group in match.groups())
+    return match.group(0).count('\n')
 
 # Generate tokens given a program string.
 def lex(prog):
@@ -25,7 +25,7 @@ def lex(prog):
 
             if match:
 
-                if typ == '<':pass
+                if typ == '<': pass
                 elif match.groups('val'):
                     val = match.group('val')
                     end = val.count('\n')
@@ -36,6 +36,7 @@ def lex(prog):
                     yield tok.token(label, val, linecount, linecount+end)
                 linecount += countlines(match)
                 prog = prog[match.end(0):]
+                # print('linecount: %s' % linecount)
                 break
 
         # No token patterns matched

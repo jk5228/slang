@@ -4,11 +4,11 @@
 import re, tok
 
 ws = re.compile('\s+')
-triples = [('}', '=', re.compile(re.escape('}'))),('||', '=', re.compile(re.escape('||'))),('{', '=', re.compile(re.escape('{'))),('while', '=', re.compile(re.escape('while'))),('return', '=', re.compile(re.escape('return'))),('in', '=', re.compile(re.escape('in'))),('if', '=', re.compile(re.escape('if'))),('for', '=', re.compile(re.escape('for'))),('else', '=', re.compile(re.escape('else'))),('def', '=', re.compile(re.escape('def'))),('break', '=', re.compile(re.escape('break'))),(']', '=', re.compile(re.escape(']'))),('[', '=', re.compile(re.escape('['))),('>=', '=', re.compile(re.escape('>='))),('>', '=', re.compile(re.escape('>'))),('==', '=', re.compile(re.escape('=='))),('=', '=', re.compile(re.escape('='))),('<=', '=', re.compile(re.escape('<='))),('<', '=', re.compile(re.escape('<'))),(';', '=', re.compile(re.escape(';'))),(':', '=', re.compile(re.escape(':'))),('/', '=', re.compile(re.escape('/'))),('...', '=', re.compile(re.escape('...'))),('..', '=', re.compile(re.escape('..'))),('->', '=', re.compile(re.escape('->'))),('-', '=', re.compile(re.escape('-'))),(',', '=', re.compile(re.escape(','))),('+', '=', re.compile(re.escape('+'))),('*', '=', re.compile(re.escape('*'))),(')', '=', re.compile(re.escape(')'))),('(', '=', re.compile(re.escape('('))),('&&', '=', re.compile(re.escape('&&'))),('%', '=', re.compile(re.escape('%'))),('!', '=', re.compile(re.escape('!'))),('num', ':', re.compile('\d+')),('str', ':', re.compile('"(?P<val>[^"]*)"')),('id', ':', re.compile('[A-Za-z]+')),('ws', '<', re.compile('\s+')),('com', '<', re.compile('#[^\n]*'))]
+triples = [('}', '=', re.compile(re.escape('}'))),('||', '=', re.compile(re.escape('||'))),('{', '=', re.compile(re.escape('{'))),('while', '=', re.compile(re.escape('while'))),('return', '=', re.compile(re.escape('return'))),('in', '=', re.compile(re.escape('in'))),('if', '=', re.compile(re.escape('if'))),('for', '=', re.compile(re.escape('for'))),('else', '=', re.compile(re.escape('else'))),('def', '=', re.compile(re.escape('def'))),('break', '=', re.compile(re.escape('break'))),(']', '=', re.compile(re.escape(']'))),('[', '=', re.compile(re.escape('['))),('>=', '=', re.compile(re.escape('>='))),('>', '=', re.compile(re.escape('>'))),('==', '=', re.compile(re.escape('=='))),('=', '=', re.compile(re.escape('='))),('<=', '=', re.compile(re.escape('<='))),('<', '=', re.compile(re.escape('<'))),(';', '=', re.compile(re.escape(';'))),(':', '=', re.compile(re.escape(':'))),('/', '=', re.compile(re.escape('/'))),('...', '=', re.compile(re.escape('...'))),('..', '=', re.compile(re.escape('..'))),('->', '=', re.compile(re.escape('->'))),('-', '=', re.compile(re.escape('-'))),(',', '=', re.compile(re.escape(','))),('+', '=', re.compile(re.escape('+'))),('*', '=', re.compile(re.escape('*'))),(')', '=', re.compile(re.escape(')'))),('(', '=', re.compile(re.escape('('))),('&&', '=', re.compile(re.escape('&&'))),('%', '=', re.compile(re.escape('%'))),('!', '=', re.compile(re.escape('!'))),('num', ':', re.compile('\d+', re.DOTALL|re.MULTILINE)),('str', ':', re.compile('"(?P<val>[^"]*)"', re.DOTALL|re.MULTILINE)),('id', ':', re.compile('[A-Za-z_][A-Za-z0-9_]*', re.DOTALL|re.MULTILINE)),('ws', '<', re.compile('(\s|\n)+', re.DOTALL|re.MULTILINE)),('com', '<', re.compile('#[^\n]*', re.DOTALL|re.MULTILINE))]
 
 # Return the number of newlines in the match object.
 def countlines(match):
-    return sum(group.count('\n') for group in match.groups())
+    return match.group(0).count('\n')
 
 # Generate tokens given a program string.
 def lex(prog):
@@ -25,7 +25,7 @@ def lex(prog):
 
             if match:
 
-                if typ == '<':pass
+                if typ == '<': pass
                 elif match.groups('val'):
                     val = match.group('val')
                     end = val.count('\n')
@@ -36,6 +36,7 @@ def lex(prog):
                     yield tok.token(label, val, linecount, linecount+end)
                 linecount += countlines(match)
                 prog = prog[match.end(0):]
+                # print('linecount: %s' % linecount)
                 break
 
         # No token patterns matched

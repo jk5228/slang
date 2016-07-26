@@ -42,5 +42,5 @@ in     = in
 num    : \d+
 str    : "(?P<val>[^"]*)"
 id     : [A-Za-z_][A-Za-z0-9_]*
-ws     < \s+
+ws     < (\s|\n)+
 com    < #[^\n]*
