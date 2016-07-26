@@ -47,7 +47,7 @@ def ast(cst):
     else:                                   # Discard terminal
         return []
 
-# Return an abstract syntax tree given a token iterator.
+# Return an abstract syntax tree given a token generator.
 def parser(tokens):
     # LR(1) parsing engine:
     state_stk = [0]
@@ -60,17 +60,20 @@ def parser(tokens):
         # print('stack: %s' % str(stack))
         # print('state stack: %s' % str(state_stk))
 
-        # Get next token
+        # Get next token and action
         if not token:
             try:
                 token = next(tokens)
+                act = table[state_stk[-1]][token.label]
             except StopIteration:
-                token = (end_sym, end_sym)
+                token = end_sym
+                act = table[state_stk[-1]][end_sym]
+        elif type(token) != str:
+            act = table[state_stk[-1]][token.label]
+        else:
+            act = table[state_stk[-1]][end_sym]
 
         # print('token: %s' % str(token))
-
-        # Get next action
-        act = table[state_stk[-1]][token[0]]
         # print('action: %s' % act)
 
         if not act:                         # ERROR
@@ -79,9 +82,9 @@ def parser(tokens):
 
         elif type(act) == action.SHIFT:     # SHIFT
 
-            t = node.terminal(token[0], token[1])
+            t = node.terminal(token.label, token.value, token.start_line, token.end_line)
             # print('t.sym: %s' % t.sym)
-            # print('t.children: %s' % t.children)
+            # print('t.value: %s' % t.value)
             stack.append(t)
             state_stk.append(act.state_num)
             token = None
@@ -92,14 +95,26 @@ def parser(tokens):
             for i in range(act.pop_num):
                 stack.pop()
                 state_stk.pop()
-            t = node.nonterminal(act.nt, children)
+            if len(children):
+                start = children[0].start_line
+                for child in reversed(children):
+                    end = child.end_line
+                    if end != None: break
+            else:
+                start = None
+                end = None
+            t = node.nonterminal(act.nt, children, start, end)
             # print('t.sym: %s' % t.sym)
             # print('t.children: %s' % t.children)
             stack.append(t)
-            act = table[state_stk[-1]][t.sym]
+            act = table[state_stk[-1]][act.nt]
             # print('action: %s' % act)
             state_stk.append(act.state_num)
 
         elif type(act) == action.ACCEPT:    # ACCEPT
 
             return ast(stack[-1])
+
+        else:
+
+            raise SyntaxError('unexpected token %s' % str(token))

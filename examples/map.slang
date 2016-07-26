@@ -1,5 +1,5 @@
 def map(fn, lst) {
-    res = range(0, size(lst));
+    res = 0...size(lst);
     for (i in res) {
         res[i] = fn(lst[i]);
     }
@@ -7,8 +7,10 @@ def map(fn, lst) {
 }
 
 def square(n) {
-    return (n) * n;
+    return n*n;
 }
 
-lst = range(0,100);
-map(square, lst);
+map(square, 0..100);
+
+# Or equivalently...
+{ n in 0..100 : 1 -> n*n };

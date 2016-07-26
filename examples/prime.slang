@@ -5,7 +5,7 @@ def factors(n) {
     for (i in 1..n) {
         if (n % i == 0) {
             res[cnt] = i;
-            cnt = (cnt + 1);
+            cnt = cnt + 1;
         } else {
         }
     }

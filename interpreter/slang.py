@@ -18,12 +18,13 @@
 #   expression and places each result into the return array.
 
 # BUGS:
-# - precedence (arithmetic, logical, and assignment (!!!!) operators)
 
 # TODO:
 # - add start/end positions for each token in output
 # - make token class with label, value, start, and end
-# - write an LR(1) parser generator (according to Appel)
+# - update tokgen.py to generate tokens one at a time
+# - update tokenizer to include positions for error messages
+# - split out built-ins from env.py
 # - robust error messages during lexing/parsing
 # - if, else if
 # - implement built-in functions in Slang

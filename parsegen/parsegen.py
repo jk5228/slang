@@ -44,6 +44,9 @@
 import re, time, pickle, action
 from collections import defaultdict, OrderedDict
 
+# Configuration variables
+
+template_path = 'parser_template.py'        # Filepath of the template parser
 parser_suffix = '.py'                       # File suffix for parser
 dump_suffix = '_table.dump'                 # File suffix for parse table dump
 
@@ -174,16 +177,7 @@ def parse_spec(spec):
 
     return grammar(root, tlist, clist, rules, prec, assoc)
 
-# LR(1) Parser generation code
-
-# To build states and edges:
-
-# Data structures:
-# List of states
-# List of shift edges (state-terminal pairs)
-# List of goto edges (state-nonterminal pairs)
-# Item object containing nt symbol, prod symbol list, pos, lookahead symbol
-# AST node object containing parent symbol, prod symbol list if any (need?), children list, start, end
+# LR(1) Parser generator.
 
 # An LR(1) parse table item.
 class item(object):
@@ -270,20 +264,6 @@ def compute_props(grammar):
                         grammar.first[nt] |= grammar.first[prod[i]]
                         # print('%s: %s' % (nt, grammar.first[nt]))
                         changed = changed or old_len != len(grammar.first[nt])
-
-    # TODO: why did this make things go so much slower?
-    # # Compute first and nullable for all subproductions
-    # grammar.nullable['[]'] = True
-    # grammar.first['[]'] = set()
-    # for prods in grammar.rules.values():
-    #     for prod in prods:
-    #         for i in range(len(prod)):
-    #             subprod = prod[i:]
-    #             grammar.nullable[str(subprod)] = nullable(grammar, subprod)
-    #             grammar.first[str(subprod)] = first(grammar, subprod)
-
-    # print(grammar.nullable)
-    # print(grammar.first)
 
 # Return the first set for a given list of symbols.
 def first(grammar, syms):
@@ -484,7 +464,8 @@ def print_table(states, table):
             print('    %s' % it)
         print('  Actions:')
         for (la, action) in state.items():
-            print('    %s%s->  %s%s' % (la, ' '*(9-len(la)), action, '\t[CONFLICT]' if type(action) == list else ''))
+            print('    %s%s->  %s%s' %\
+                (la, ' '*(9-len(la)), action, '\t[CONFLICT]' if type(action) == list else ''))
             if type(action) == list:
                 conflicts.append('State %s: %s -> %s' % (i, la, action))
 
@@ -519,65 +500,9 @@ def get_table(grammar):
     # Construct table
     table = generate_table(grammar, states, edges)
 
-    # Print table
     # print_table(states, table)
 
     return table
-
-    # To include positions for error messages:
-    # Extract from underlying token objects
-
-    # Allow Python semantic actions for each production in .syn?
-
-
-
-# Return the parse tree (list) for the given root entry of an Earley parse.
-def get_tree(rules, tokens, root):
-    if type(root) != entry: return root
-    rhs = []
-    children = iter(root.children)
-    # print(root.children)
-    # print('%s: %s' % (root.nt, [e.id() for e in root.children]))
-    for child in root.children:
-        rhs.append(get_tree(rules, tokens, child))
-    return (root.nt, rhs)
-
-# Return the given parse tree after normalization. A normalized tree contains
-# none of the nonterminals in clist and all and only the terminals in tlist.
-def normalize_tree(tlist, clist, root):
-    def rec(root):
-        if not root: return []
-        lhs, rhs = root
-        if type(rhs) == list:       # Nonterminal
-            res_rhs = []
-            rhs = [rec(t) for t in rhs]
-            rhs = [item for sublist in rhs for item in sublist]
-            for t in rhs:
-                if type(t) == list: res_rhs.extend(t)
-                else: res_rhs.append(t)
-            if lhs in clist:        # Contracted nonterminal
-                return [res_rhs]
-            else:                   # Uncontracted nonterminal
-                return [(lhs, res_rhs)]
-        elif lhs in tlist:          # Preserved terminal
-                return [(lhs, rhs)]
-        else:                       # Unpreserved terminal
-            return []
-    return rec(root)[0]
-
-# Pretty print the parse tree, with subsequent levels indented to show nesting.
-def print_tree(root):
-    def rec(root, level):
-        if not root: return
-        lhs, rhs = root
-        print(('%s%s' % ('| '*level, lhs)), end='')
-        if type(rhs) == list:
-            print()
-            for term in rhs:
-                rec(term, level+1)
-        else:
-            print(' : %s' % rhs)
-    rec(root, 0)
 
 # Return a dumpable object given a parse table.
 def dumpable(table):
@@ -602,10 +527,9 @@ def dumpable(table):
 
     return res
 
-
 # Create a parser Python program file and a parse table pickled file at the
-# given path, based on the given spec string.
-def parse_file(path, spec):
+# given path, given a spec string.
+def parser_file(path, spec):
     grammar = parse_spec(spec)
 
     # print(grammar.prec)
@@ -619,30 +543,18 @@ def parse_file(path, spec):
     f.close()
 
     # Generate parser file
-    temp_str = open('parser_template.py', 'r').read()
+    temp_str = open(template_path, 'r').read()
     tlist = ', '.join('\'{0}\''.format(t) for t in grammar.tlist)
     clist = ', '.join('\'{0}\''.format(c) for c in grammar.clist)
     f = open(path+parser_suffix, 'w')
     f.write(temp_str.format(grammar.end_sym, tlist, clist, path+dump_suffix))
     f.close()
 
-# Pack table (nested dict) into a single flat defaultdict(lambda: None) accessed by (state_num, sym)
-# Pickle table (seems to work as expected with custom classes)
-# Generate parser that unpickles table and runs parser engine
-# Parse template needs: pickled table fname, end_sym, action and node classes
-
-# TODO:
-# - test all this stuff below and put it into the template
-# - pickle/unpickle
-# - restructure packages so intepreter can import all the requisite modules
-# - update tokgen.py to return tokenizer object that streams tokens (instead of list)
-# - update tokenizer to include positions for error messages
-
 # # Test code
 
 # spec = open('sample.syn', 'r').read()
 # print(root, rules)
-# gram, table = parse_file('', spec)
+# gram, table = parser_file('', spec)
 
 # When executed, take filepath fpath and spec filepath sfpath arguments and
 # write a parser program to fpath given the spec at sfpath.
@@ -650,4 +562,4 @@ if __name__ == "__main__":
     from sys import argv
     fpath = argv[1]
     spec = open(argv[2], 'r').read()
-    parse_file(fpath, spec)
+    parser_file(fpath, spec)
