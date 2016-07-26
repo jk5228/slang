@@ -7,4 +7,4 @@ class node(object):
         self.children = children
 
     def __repr__(self):
-        return '{0} {1}'.format(self.nt, str(self.children))
+        return 'node({0} -> {1})'.format(self.nt, str(self.children))
