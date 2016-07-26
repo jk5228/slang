@@ -25,8 +25,29 @@ def usable(dump_table):
     return table
 
 end_sym = 'END_SYM'
+tlist = ['num', 'str', 'id', '..', '...', '+', '-', '*', '/', '%', '!', '&&', '||', '==', '<=', '>=', '<', '>', 'break']
+clist = ['stm*', 'stm+', 'stm', 'id*', 'id+', 'exp*', 'exp+']
 table = usable(pickle.load(open('parse_table.dump', 'rb')))
 
+# Return the abstract syntax tree given a concrete syntax tree. If the root of
+# the concrete syntax tree is contracted, then the resulting abstract syntax
+# tree will be a list of trees.
+def ast(cst):
+    if type(cst) == node.nonterminal:       # Nonterminal
+        children = []
+        for child in cst.children:
+            children.extend(ast(child))
+        if cst.sym in clist:                # Contract nonterminal
+            return children
+        else:                               # Keep nonterminal
+            cst.children = children
+            return [cst]
+    elif cst.sym in tlist:                  # Keep terminal
+        return [cst]
+    else:                                   # Discard terminal
+        return []
+
+# Return an abstract syntax tree given a token iterator.
 def parser(tokens):
     # LR(1) parsing engine:
     state_stk = [0]
@@ -58,8 +79,8 @@ def parser(tokens):
 
         elif type(act) == action.SHIFT:     # SHIFT
 
-            t = node.node(token[0], token[1])
-            # print('t.nt: %s' % t.nt)
+            t = node.terminal(token[0], token[1])
+            # print('t.sym: %s' % t.sym)
             # print('t.children: %s' % t.children)
             stack.append(t)
             state_stk.append(act.state_num)
@@ -71,14 +92,14 @@ def parser(tokens):
             for i in range(act.pop_num):
                 stack.pop()
                 state_stk.pop()
-            t = node.node(act.nt, children)
-            # print('t.nt: %s' % t.nt)
+            t = node.nonterminal(act.nt, children)
+            # print('t.sym: %s' % t.sym)
             # print('t.children: %s' % t.children)
             stack.append(t)
-            act = table[state_stk[-1]][t.nt]
+            act = table[state_stk[-1]][t.sym]
             # print('action: %s' % act)
             state_stk.append(act.state_num)
 
         elif type(act) == action.ACCEPT:    # ACCEPT
 
-            return stack[-1]
+            return ast(stack[-1])

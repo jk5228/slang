@@ -1,3 +1,5 @@
+: num
+
 %left !
 %left * / %
 %left + -
@@ -7,12 +9,12 @@
 %right =
 
 exp : num
-		| exp + exp
+    | exp + exp
     | exp - exp
     | exp * exp
     | exp / exp
     | exp % exp
-		| ! exp
+    | ! exp
     | exp && exp
     | exp || exp
     | exp == exp

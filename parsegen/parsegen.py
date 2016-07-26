@@ -41,7 +41,7 @@
 # nonterminal that will be contracted from the parse tree (i.e., it's children
 # become the children of the parent of the contracted nonterminal node).
 
-import re, time, pickle, action, node
+import re, time, pickle, action
 from collections import defaultdict, OrderedDict
 
 parser_suffix = '.py'                       # File suffix for parser
@@ -620,8 +620,10 @@ def parse_file(path, spec):
 
     # Generate parser file
     temp_str = open('parser_template.py', 'r').read()
+    tlist = ', '.join('\'{0}\''.format(t) for t in grammar.tlist)
+    clist = ', '.join('\'{0}\''.format(c) for c in grammar.clist)
     f = open(path+parser_suffix, 'w')
-    f.write(temp_str.format(grammar.end_sym, path+dump_suffix))
+    f.write(temp_str.format(grammar.end_sym, tlist, clist, path+dump_suffix))
     f.close()
 
 # Pack table (nested dict) into a single flat defaultdict(lambda: None) accessed by (state_num, sym)
