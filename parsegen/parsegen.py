@@ -428,13 +428,6 @@ def generate_table(grammar, states, edges):
                         table[i][it.la] = new_action
 
                     elif it.la in grammar.follow[it.nt] - grammar.first[it.nt]:
-                        # TODO: should generate a reduce action for every symbol
-                        #       in FOLLOW(nt) - FIRST(nt) (this set diff should
-                        #       always be non-empty if the reduction is correct
-                        #       since FIRST(nt) only contains first symbols in
-                        #       nt productions, whereas FOLLOW(nt) include all
-                        #       symbols that can follow nt productions,
-                        #       including the end symbol)
                         table[i][it.la] = new_action
 
                 else:                                       # Conflict
@@ -485,12 +478,6 @@ def generate_table(grammar, states, edges):
 
                         elif not len(it.prod) and it.la in\
                             grammar.follow[it.nt] - grammar.first[it.nt]:
-
-                            # TODO: should generate a reduce action for every
-                            #       symbol in FOLLOW(nt) - FIRST(nt)
-
-                            # print('empty it.prod action: %s' % r)
-                            # print('table[%i][%s] = %s' % (i, grammar.default_sym, r))
                             table[i][it.la] = r
 
                         else:                               # Unresolved

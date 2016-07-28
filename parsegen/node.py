@@ -31,9 +31,9 @@ def print_tree(tree):
         if type(tree) == terminal:
             print('%s%s : %s (%s-%s)' % ('| '*level, tree.sym, tree.value,\
                 tree.start_line, tree.end_line))
-            return
-        print('%s%s (%s-%s)' % ('| '*level, tree.sym, tree.start_line,\
-            tree.end_line))
-        for child in tree.children:
-            rec(child, level+1)
+        else:
+            print('%s%s (%s-%s)' % ('| '*level, tree.sym, tree.start_line,\
+                tree.end_line))
+            for child in tree.children:
+                rec(child, level+1)
     rec(tree, 0)

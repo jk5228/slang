@@ -34,19 +34,22 @@ table = usable(pickle.load(open('{3}', 'rb')))
 # the concrete syntax tree is contracted, then the resulting abstract syntax
 # tree will be a list of trees.
 def ast(cst):
-    if type(cst) == node.nonterminal:       # Nonterminal
-        children = []
-        for child in cst.children:
-            children.extend(ast(child))
-        if cst.sym in clist:                # Contract nonterminal
-            return children
-        else:                               # Keep nonterminal
-            cst.children = children
+    def rec(cst):
+        if type(cst) == node.nonterminal:       # Nonterminal
+            children = []
+            for child in cst.children:
+                children.extend(rec(child))
+            if cst.sym in clist:                # Contract nonterminal
+                return children
+            else:                               # Keep nonterminal
+                cst.children = children
+                return [cst]
+        elif cst.sym in tlist:                  # Keep terminal
             return [cst]
-    elif cst.sym in tlist:                  # Keep terminal
-        return [cst]
-    else:                                   # Discard terminal
-        return []
+        else:                                   # Discard terminal
+            return []
+
+    return rec(cst)[0]
 
 # Return an abstract syntax tree given a token generator.
 def parse(tokens):
