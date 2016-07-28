@@ -49,6 +49,7 @@ from collections import defaultdict, OrderedDict
 template_path = 'parser_template.py'        # Filepath of the template parser
 parser_suffix = '.py'                       # File suffix for parser
 dump_suffix = '_table.dump'                 # File suffix for parse table dump
+dump_path = 'parse.out'                     # File to dump table to (if conflicts)
 
 # The grammar object.
 class grammar(object):
@@ -61,9 +62,10 @@ class grammar(object):
         self.prec = prec                    # Dictionary of precedence numbers
         self.assoc = assoc                  # Dictionary of associativities
         self.first = defaultdict(set)       # Dictionary of first sets
+        self.follow = defaultdict(set)      # Dictionary of follow sets
         self.nullable = defaultdict(bool)   # Dictionary of nullabilities
         self.start_sym = 'START_SYM'        # Start symbol
-        self.end_sym = 'END_SYM'            # End symbol
+        self.end_sym = 'END_SYM'            # End symbols
 
 # Return a grammar object for the given spec string.
 def parse_spec(spec):
@@ -253,10 +255,10 @@ def compute_props(grammar):
                     grammar.nullable[nt] = True
                     changed = changed or not old_val
 
-                # Extend first sets
+                # Extend first and follow sets
                 for i in range(len(prod)):
 
-                    if i == 0 or all(grammar.nullable[sym] for sym in prod[:i]):
+                    if all(grammar.nullable[sym] for sym in prod[:i]):
 
                         # print('%s: %s' % (nt, grammar.first[nt]))
                         # print('%s: %s' % (prod[i], grammar.first[prod[i]]))
@@ -264,6 +266,22 @@ def compute_props(grammar):
                         grammar.first[nt] |= grammar.first[prod[i]]
                         # print('%s: %s' % (nt, grammar.first[nt]))
                         changed = changed or old_len != len(grammar.first[nt])
+
+                    if all(grammar.nullable[sym] for sym in prod[i+1:]):
+
+                        old_len = len(grammar.follow[prod[i]])
+                        grammar.follow[prod[i]] |= grammar.follow[nt]
+                        changed = changed or old_len != len(grammar.follow[prod[i]])
+
+                    for j in range(i+1, len(prod)):
+
+                        if all(grammar.nullable[sym] for sym in prod[i+1:j]):
+
+                            old_len = len(grammar.follow[prod[i]])
+                            grammar.follow[prod[i]] |= grammar.first[prod[j]]
+                            changed = changed or old_len != len(grammar.follow[prod[i]])
+
+
 
 # Return the first set for a given list of symbols.
 def first(grammar, syms):
@@ -370,10 +388,12 @@ def is_acceptable(grammar, it):
     return it.nt == grammar.start_sym and it.next() == grammar.end_sym\
                                       and it.la == grammar.end_sym
 
-# Return the parse table given a grammar and state graph.
+# Return the parse table and a list of conflicts given a grammar and state
+# graph.
 def generate_table(grammar, states, edges):
 
     table = [defaultdict(lambda: None) for state in states]
+    conflicts = []
 
     # Fill in goto and shift actions
     for edge in edges:
@@ -391,9 +411,10 @@ def generate_table(grammar, states, edges):
     # Fill in reduce actions
     for (i, state) in enumerate(states):
 
-        for it in (it for it in state if it.prod and it.la):
+        for it in (it for it in state if it.la):
 
-            if is_acceptable(grammar, it):
+            if is_acceptable(grammar, it):                  # Accept
+
                 table[i][it.la] = action.ACCEPT()
 
             elif it.completed():                            # Reduce
@@ -401,16 +422,30 @@ def generate_table(grammar, states, edges):
                 new_action = action.REDUCE(last_terminal(grammar, it.prod), it.nt, it.prod)
                 old_action = table[i][it.la]
 
-
                 if not old_action:
 
-                    table[i][it.la] = new_action
+                    if len(it.prod):
+                        table[i][it.la] = new_action
+
+                    elif it.la in grammar.follow[it.nt] - grammar.first[it.nt]:
+                        # TODO: should generate a reduce action for every symbol
+                        #       in FOLLOW(nt) - FIRST(nt) (this set diff should
+                        #       always be non-empty if the reduction is correct
+                        #       since FIRST(nt) only contains first symbols in
+                        #       nt productions, whereas FOLLOW(nt) include all
+                        #       symbols that can follow nt productions,
+                        #       including the end symbol)
+                        table[i][it.la] = new_action
 
                 else:                                       # Conflict
 
                     if type(old_action) == action.REDUCE:   # Reduce-reduce
 
-                        table[i][it.la] = [old_action, new_action]
+                        if len(old_action.prod) + len(new_action.prod) == 0:
+                            table[i][it.la] = [old_action, new_action]
+                            conflicts.append([old_action, new_action])
+                        elif len(new_action.prod):
+                            table[i][it.la] = new_action
 
                     else:                                   # Shift-reduce
 
@@ -448,33 +483,48 @@ def generate_table(grammar, states, edges):
                             else:
                                 table[i][it.la] = r
 
+                        elif not len(it.prod) and it.la in\
+                            grammar.follow[it.nt] - grammar.first[it.nt]:
+
+                            # TODO: should generate a reduce action for every
+                            #       symbol in FOLLOW(nt) - FIRST(nt)
+
+                            # print('empty it.prod action: %s' % r)
+                            # print('table[%i][%s] = %s' % (i, grammar.default_sym, r))
+                            table[i][it.la] = r
+
                         else:                               # Unresolved
 
                             table[i][it.la] = [old_action, new_action]
+                            conflicts.append([old_action, new_action])
 
-    return table
+    return (table, conflicts)
 
-# Print the parse table and a list of conflicts.
-def print_table(states, table):
+# Print the parse table and a list of conflicts. If a file is specified, write
+# the output to the file.
+def print_table(states, table, f=None):
+    write = print
+    if f: write = lambda x: f.write('\n'+str(x))
     conflicts = []
     for (i, state) in enumerate(table):
-        print('State %d:' % i)
-        print('  Items:')
+        write('State %d:' % i)
+        write('  Items:')
         for it in states[i]:
-            print('    %s' % it)
-        print('  Actions:')
+            write('    %s' % it)
+        write('  Actions:')
         for (la, action) in state.items():
-            print('    %s%s->  %s%s' %\
+            write('    %s%s->  %s%s' %\
                 (la, ' '*(9-len(la)), action, '\t[CONFLICT]' if type(action) == list else ''))
             if type(action) == list:
                 conflicts.append('State %s: %s -> %s' % (i, la, action))
 
-    print('Conflicts (%s total):' % len(conflicts))
+    write('Conflicts (%s total):' % len(conflicts))
     for conflict in conflicts:
-        print('  ' + conflict)
+        write('  ' + conflict)
 
 # Return a generated LR(1) parse table (dict<state number, dict<lookahead
-# symbol, action>>) given a grammar object.
+# symbol, action>>), a list of any conflicts, and a list of items in states,
+# given a grammar object.
 def get_table(grammar):
 
     # Start item
@@ -493,16 +543,15 @@ def get_table(grammar):
 
     # Initialize the graph
     start_state = closure_set(grammar, start_set)
+    # print(start_state)
+    # exit(0)
 
     # Construct rest of states
     states, edges = generate_graph(grammar, start_state)
 
-    # Construct table
-    table = generate_table(grammar, states, edges)
-
-    # print_table(states, table)
-
-    return table
+    # Construct table and get any conflicts
+    table, conflicts = generate_table(grammar, states, edges)
+    return (table, conflicts, states)
 
 # Return a dumpable object given a parse table.
 def dumpable(table):
@@ -528,14 +577,26 @@ def dumpable(table):
     return res
 
 # Create a parser Python program file and a parse table pickled file at the
-# given path, given a spec string.
-def parser_file(path, spec):
+# given path, given a spec string. If dump is True and there are any conflicts,
+# dump the table into a file called "parse.out" for inspection.
+def parser_file(path, spec, dump):
     grammar = parse_spec(spec)
 
     # print(grammar.prec)
     # print(grammar.assoc)
 
-    table = get_table(grammar)
+    table, conflicts, states = get_table(grammar)
+
+    # Check for conflicts
+    if len(conflicts):
+        if dump:                            # Present -q flag
+            f = open(dump_path, 'w')
+            print_table(states, table, f)
+            f.close()
+            raise Exception('conflicts (%d) so dumping table to "parse.out".' % len(conflicts))
+        else:                               # No -q flag
+            raise Exception('conflicts (%d):\n%s' %\
+                (len(conflicts), '\n'.join(str(conflict) for conflict in conflicts)))
 
     # Pickle parse table
     f = open(path+dump_suffix, 'wb')
@@ -557,9 +618,19 @@ def parser_file(path, spec):
 # gram, table = parser_file('', spec)
 
 # When executed, take filepath fpath and spec filepath sfpath arguments and
-# write a parser program to fpath given the spec at sfpath.
+# write a parser program to fpath given the spec at sfpath. If there are any
+# conflicts, dump the table into a file called "parse.out". An optional first
+# argument "-q" (quiet) alters this behavior by only printing conflicts to
+# stderr and does not generate "parse.out".
 if __name__ == "__main__":
     from sys import argv
-    fpath = argv[1]
-    spec = open(argv[2], 'r').read()
-    parser_file(fpath, spec)
+    if len(argv) == 3:                      # No -q flag
+        fpath = argv[1]
+        spec = open(argv[2], 'r').read()
+        parser_file(fpath, spec, True)
+    elif len(argv) == 4:                    # Present -q flag
+        fpath = argv[2]
+        spec = open(argv[3], 'r').read()
+        parser_file(fpath, spec, False)
+    else:
+        raise ValueError('expected 2 or 3 arguments but got %d instead.' % len(argv)-1)

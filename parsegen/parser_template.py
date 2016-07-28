@@ -10,6 +10,7 @@ def usable(dump_table):
     table = [defaultdict(lambda: None) for state in dump_table]
 
     for (i, state) in enumerate(dump_table):
+
         for (sym, act_tup) in state:
             act = None
             if act_tup[0] == 'SHIFT':
@@ -108,8 +109,8 @@ def parse(tokens):
             # print('t.children: %s' % t.children)
             stack.append(t)
             act = table[state_stk[-1]][act.nt]
-            # print('action: %s' % act)
             state_stk.append(act.state_num)
+            # print('action: %s' % act)
 
         elif type(act) == action.ACCEPT:    # ACCEPT
 

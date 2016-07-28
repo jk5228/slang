@@ -17,9 +17,8 @@
 prog     : stm*
 stmLst   : stm*
 stm*     < EMPTY
-         | stm+
-stm+     < stm
-         | stm* stm
+         | stm
+         | stm stm*
 stm      < line ;
          | block
 line     : exp
@@ -37,9 +36,8 @@ whileBlk : while ( exp ) { stmLst }
 forBlk   : for ( id in exp ) { stmLst }
 idLst    : id*
 id*      < EMPTY
-         | id+
-id+      < id
-         | id+ , id
+         | id
+         | id , id*
 exp      : ( exp )
          | prim
          | assign
@@ -62,9 +60,8 @@ arrComp  : { id in exp : exp }
          | { id in exp : exp -> exp }
 expLst   : exp*
 exp*     < EMPTY
-         | exp+
-exp+     < exp
-         | exp+ , exp
+         | exp
+         | exp , exp*
 arrAcc   : id [ exp ]
 funExp   : id ( expLst )
 arithExp : exp + exp

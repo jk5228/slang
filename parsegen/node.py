@@ -24,3 +24,16 @@ class nonterminal(object):
     def __repr__(self):
         children = ', '.join(str(child) for child in self.children)
         return '{0} : [ {1} ]({2}-{3})'.format(self.sym, children, self.start_line, self.end_line)
+
+# Pretty print the tree.
+def print_tree(tree):
+    def rec(tree, level):
+        if type(tree) == terminal:
+            print('%s%s : %s (%s-%s)' % ('| '*level, tree.sym, tree.value,\
+                tree.start_line, tree.end_line))
+            return
+        print('%s%s (%s-%s)' % ('| '*level, tree.sym, tree.start_line,\
+            tree.end_line))
+        for child in tree.children:
+            rec(child, level+1)
+    rec(tree, 0)

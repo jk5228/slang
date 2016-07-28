@@ -18,8 +18,11 @@
 #   expression and places each result into the return array.
 
 # BUGS:
+# - empty productions not recognized
 
 # TODO:
+# - add empty productions to parse table in a way that identifies r/r conflicts
+#   in parsegen.py
 # - split out built-ins from env.py
 # - robust error messages during lexing/parsing
 # - if, else if

@@ -10,6 +10,7 @@ def usable(dump_table):
     table = [defaultdict(lambda: None) for state in dump_table]
 
     for (i, state) in enumerate(dump_table):
+
         for (sym, act_tup) in state:
             act = None
             if act_tup[0] == 'SHIFT':
@@ -26,7 +27,7 @@ def usable(dump_table):
 
 end_sym = 'END_SYM'
 tlist = ['num', 'str', 'id', '..', '...', '+', '-', '*', '/', '%', '!', '&&', '||', '==', '<=', '>=', '<', '>', 'break']
-clist = ['stm*', 'stm+', 'stm', 'id*', 'id+', 'exp*', 'exp+']
+clist = ['stm*', 'stm', 'id*', 'exp*']
 table = usable(pickle.load(open('parse_table.dump', 'rb')))
 
 # Return the abstract syntax tree given a concrete syntax tree. If the root of
@@ -48,7 +49,7 @@ def ast(cst):
         return []
 
 # Return an abstract syntax tree given a token generator.
-def parser(tokens):
+def parse(tokens):
     # LR(1) parsing engine:
     state_stk = [0]
     stack = []
@@ -108,8 +109,8 @@ def parser(tokens):
             # print('t.children: %s' % t.children)
             stack.append(t)
             act = table[state_stk[-1]][act.nt]
-            # print('action: %s' % act)
             state_stk.append(act.state_num)
+            # print('action: %s' % act)
 
         elif type(act) == action.ACCEPT:    # ACCEPT
 

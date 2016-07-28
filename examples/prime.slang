@@ -2,13 +2,14 @@
 def factors(n) {
     res = {i in 0..30 : 1 -> 0};
     cnt = 0;
-    for (i in 1..n) {
-        if (n % i == 0) {
-            res[cnt] = i;
-            cnt = cnt + 1;
-        } else {
-        }
+for (i in 1..n) {
+    if (n % i == 0) {
+        res[cnt] = i;
+        cnt = cnt + 1;
+    } else {
+       1;
     }
+}
     return {i in res : i -> i};
 }
 

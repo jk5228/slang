@@ -1,0 +1,15 @@
+# Syntax for testing parser generation for syntax with empty productions.
+
+: num
+
+%left !
+%left * / %
+%left + -
+%left &&
+%left ||
+%nonassoc == != <= >= < > .. ...
+%right =
+
+exp : EMPTY
+    | num
+    | ( exp )
