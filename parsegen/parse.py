@@ -51,9 +51,9 @@ def ast(cst):
 
     return rec(cst)[0]
 
-# Return an abstract syntax tree given a token generator.
-def parse(tokens):
-    # LR(1) parsing engine:
+# Return an abstract syntax tree given a lexer object.
+def parse(lexer):
+
     state_stk = [0]
     stack = []
     token = None
@@ -67,7 +67,7 @@ def parse(tokens):
         # Get next token and action
         if not token:
             try:
-                token = next(tokens)
+                token = lexer.next()
                 act = table[state_stk[-1]][token.label]
             except StopIteration:
                 token = end_sym
@@ -82,7 +82,9 @@ def parse(tokens):
 
         if not act:                         # ERROR
 
-            raise SyntaxError('unexpected token %s' % str(token))
+            frag = lexer.vicinity(token.start_line, 3, lexer.prog_str)
+            raise SyntaxError('line %d: unexpected token "%s".\n%s'\
+                % (token.start_line, str(token.value), frag))
 
         elif type(act) == action.SHIFT:     # SHIFT
 
@@ -118,7 +120,3 @@ def parse(tokens):
         elif type(act) == action.ACCEPT:    # ACCEPT
 
             return ast(stack[-1])
-
-        else:
-
-            raise SyntaxError('unexpected token %s' % str(token))
