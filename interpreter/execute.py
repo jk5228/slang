@@ -6,6 +6,7 @@ import env
 # Types
 
 # TODO: have every class inherit from object?
+# TODO: move these classes to another module
 
 class number(object):
 

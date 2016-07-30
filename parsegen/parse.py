@@ -49,7 +49,9 @@ def ast(cst):
         else:                                   # Discard terminal
             return []
 
-    return rec(cst)[0]
+    res = rec(cst)
+    if len(res) > 1: return res                 # top-level contraction
+    return res[0]
 
 # Return an abstract syntax tree given a lexer object.
 def parse(lexer):

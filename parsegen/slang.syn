@@ -1,7 +1,5 @@
 # The Slang syntax specification.                           Jason Kim, 7/12/2016
 
-# TODO: allow precedence rules in parser generator?
-
 # Production rules
 
 : num str id .. ... + - * / % ! && || == <= >= < > break
