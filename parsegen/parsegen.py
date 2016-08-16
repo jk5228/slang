@@ -41,7 +41,8 @@
 # nonterminal that will be contracted from the parse tree (i.e., it's children
 # become the children of the parent of the contracted nonterminal node).
 
-import re, time, pickle, action
+import re, time, pickle
+import action
 from collections import defaultdict, OrderedDict
 
 # Configuration variables

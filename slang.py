@@ -18,6 +18,8 @@
 #   expression and places each result into the return array.
 
 # BUGS:
+# - fix env stack so function calls can only see local and global envs
+# - fix relative path issues with imports (attach cwd to relative path of imported file?)
 
 # TODO:
 # - automatically generate execute.py template based on .syn?
@@ -41,11 +43,10 @@
 # - either support or disallow nested functions and closures
 
 from collections import deque
-import parsegen.parse
-import lexgen.lex
-import interpreter.env
-import interpreter.execute
-import interpreter.repl
+from parsegen import parse
+from lexgen import lex
+import repl
+from interpreter import env, execute
 
 # Run the program string.
 def run(p):

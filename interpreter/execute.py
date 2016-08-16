@@ -1,7 +1,7 @@
 # The Slang executor                                        Jason Kim, 7/15/2016
 # The Slang executor takes a list of Slang statements and executes them.
 
-import env
+from . import env
 
 # Types
 

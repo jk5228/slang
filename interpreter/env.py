@@ -2,7 +2,7 @@
 # The global environment contains built-in functions and other predefined global
 # variables.
 
-import execute
+from . import execute
 from collections import OrderedDict
 
 # Built-in functions

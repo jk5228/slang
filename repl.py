@@ -2,12 +2,9 @@
 # The Slang REPL (read-evaluate-print loop) does exactly that. To exit, enter
 # "exit"
 
-import env
-import cmd
-import copy
 import slang
-import colors
-import execute
+from interpreter import env, colors, execute
+import cmd, copy
 
 class repl(cmd.Cmd):
 
