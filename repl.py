@@ -10,8 +10,8 @@ class repl(cmd.Cmd):
 
     intro = 'Slang REPL\nEnter "exit", ctrl+C, or ctrl+D to quit.\nEnter "help" for more commands.'
     fresh_env = copy.deepcopy(env.env)
-    in_prompt = '%s%s%s' % (colors.color('In  [', colors.OKGREEN), '%s', colors.color(']: ', colors.OKGREEN))
-    out_prompt = '%s%s%s%s' % (colors.color('Out [', colors.FAIL), '%s', colors.color(']: ', colors.FAIL), '%s')
+    in_prompt = '%s%s%s' % (colors.color('In  [', colors.OKBLUE), '%s', colors.color(']: ', colors.OKBLUE))
+    out_prompt = '%s%s%s%s' % (colors.color('Out [', colors.OKCYAN), '%s', colors.color(']: ', colors.OKCYAN), '%s')
     prompt = ''
     ret_prompt = ''
     last_run = None
