@@ -94,23 +94,19 @@ def call(envs, fname, args):
 
 # Return the root token of the parse tree.
 def token(tree):
-    return tree[0]
+    return tree.sym
 
-# Return if the root of the tree is the given token.
+# Return if the root token of the tree is the given token.
 def match(tree, tok):
-    return token(tree) == tok
+    return tree.sym == tok
 
 # Return the leftmost subtree of the parse tree.
 def sub(tree):
-    if type(tree[1]) == list:
-        return tree[1][0]
-    return tree[1]
+    return tree.children[0]
 
-# Return the list of children of the given tree.
+# Return the children of the parse tree.
 def subs(tree):
-    if type(tree[1]) == list:
-        return tree[1]
-    return [tree[1]]
+    return tree.children
 
 # Return the number (int or float) in the given string.
 def get_num(num):
@@ -135,11 +131,11 @@ def evaluate(envs, exp):
         # print('-> prim')
         prim = sub(exp)
         if match(prim, 'num'):              # Number
-            return number(get_num(sub(prim)))
+            return number(get_num(prim.value))
         elif match(prim, 'str'):            # String
-            return string(sub(prim))
+            return string(prim.value)
         else:                               # Variable
-            return find(envs, sub(prim))
+            return find(envs, prim.value)
 
     elif match(exp, 'assign'):              # Assignment
 
@@ -147,13 +143,13 @@ def evaluate(envs, exp):
 
         if token(sub(exp)) == 'id':
             # print('-> id')
-            var = sub(sub(exp))
+            var = sub(exp).value
             val = evaluate(envs, subs(exp)[1])
             bind(envs, var, val)
             return val
         else:
             # print('-> arrAcc')
-            arr = unwrap(find(envs, sub(sub(sub(exp)))))
+            arr = unwrap(find(envs, sub(sub(exp)).value))
             ind = unwrap(evaluate(envs, subs(sub(exp))[1]))
             val = evaluate(envs, subs(exp)[1])
             arr[ind] = val
@@ -162,18 +158,18 @@ def evaluate(envs, exp):
     elif match(exp, 'arrAcc'):              # Array access
 
         # print('-> arrAcc')
-        arr = unwrap(find(envs, sub(sub(exp))))
+        arr = unwrap(find(envs, sub(exp).value))
         if type(arr) != list:
-            raise TypeError('cannot index into %s : %s.' % (sub(sub(exp)), type(arr)))
+            raise TypeError('cannot index into %s : %s.' % (sub(exp).value, type(arr)))
         ind = unwrap(evaluate(envs, subs(exp)[1]))
         if ind < 0 or ind >= len(arr):
-            raise IndexError('cannot access index %d of array "%s".' % (ind, sub(sub(exp))))
+            raise IndexError('cannot access index %d of array "%s".' % (ind, sub(exp).value))
         return arr[ind]
 
     elif match(exp, 'funExp'):              # Function call
 
         # print('-> funExp')
-        fname = sub(sub(exp))
+        fname = sub(exp).value
         args = [evaluate(envs, arg) for arg in subs(subs(exp)[1])]
         return call(envs, fname, args)
 
@@ -192,7 +188,7 @@ def evaluate(envs, exp):
         # print(lo)
         hi = evaluate(envs, terms[2])
         # print(hi)
-        op = sub(terms[1])
+        op = terms[1].value
         # print(op)
 
         if type(lo) == type(hi) and type(lo) == number:
@@ -208,7 +204,7 @@ def evaluate(envs, exp):
         # print('-> arrComp')
         terms = subs(exp)
         # print(terms)
-        ind = sub(terms[0])
+        ind = terms[0].value
         # print(ind)
         arr = unwrap(evaluate(envs, terms[1]))
         # print(arr)
@@ -240,7 +236,7 @@ def evaluate(envs, exp):
         terms = subs(exp)
         left = evaluate(envs, terms[0])
         right = evaluate(envs, terms[2])
-        op = sub(terms[1])
+        op = terms[1]
 
         if match(op, '+'):                  # Add
             # print('-> +')
@@ -288,7 +284,7 @@ def evaluate(envs, exp):
         if len(terms) == 3:                 # Binary expression
             left = evaluate(envs, terms[0])
             right = evaluate(envs, terms[2])
-            op = sub(terms[1])
+            op = terms[1]
 
             if match(op, '&&'):             # And
                 # print('-> &&')
@@ -344,18 +340,18 @@ def execute_stms(envs, incall, inloop, stms):
     # print('execute: %s' % (stms))
     res = result.res(number(0))
     for stm in stms:
-        if not len(stm): continue
-        elif match(stm, 'line'):            # Line
+        if match(stm, 'line'):              # Line
             stm = sub(stm)
+            terms = subs(stm)
             if match(stm, 'retStm'):        # Return
                 # print('-> retStm')
-                if not incall:  raise SyntaxError('cannot return outside of a function call.')
-                elif stm[1]:    return result.ret(evaluate(envs, stm[1][0]))
-                else:           return result.ret(number(0))
+                if not incall:          raise SyntaxError('cannot return outside of a function call.')
+                elif len(terms) > 1:    return result.ret(evaluate(envs, terms[1]))
+                else:                   return result.ret(number(0))
             elif match(stm, 'break'):       # Break
                 # print('-> break')
-                if not inloop: raise SyntaxError('cannot break outside of a loop.')
-                else:          return result.brk(number(0))
+                if not inloop:          raise SyntaxError('cannot break outside of a loop.')
+                else:                   return result.brk(number(0))
             elif match(stm, 'exp'):         # Expression
                 # print('-> exp')
                 res = evaluate(envs, stm)
@@ -364,8 +360,8 @@ def execute_stms(envs, incall, inloop, stms):
             if match(stm, 'funBlk'):        # Function declaration
                 # print('-> funBlk')
                 terms = subs(stm)
-                fname = sub(terms[0])
-                args = [sub(t) for t in subs(terms[1])]
+                fname = terms[0].value
+                args = [t.value for t in subs(terms[1])]
                 body = subs(terms[2])
                 res = bind(envs, fname, func(fname, args, body))
             elif match(stm, 'ifBlk'):       # If-else block
@@ -400,7 +396,7 @@ def execute_stms(envs, incall, inloop, stms):
             else:                           # For block
                 # print('-> forBlk')
                 terms = subs(stm)
-                ind = sub(terms[0])
+                ind = terms[0].value
                 arr = unwrap(evaluate(envs, terms[1]))
                 stms = subs(terms[2])
                 for val in arr:

@@ -10,7 +10,7 @@ def square(n) {
     return n*n;
 }
 
-map(square, 0..100);
+print(map(square, 0..100));
 
 # Or equivalently...
-{ n in 0..100 : 1 -> n*n };
+print({ n in 0..100 : 1 -> n*n });

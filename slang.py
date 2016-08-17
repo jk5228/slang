@@ -19,10 +19,11 @@
 
 # BUGS:
 # - fix env stack so function calls can only see local and global envs
-# - fix relative path issues with imports (attach cwd to relative path of imported file?)
 
 # TODO:
 # - automatically generate execute.py template based on .syn?
+#   well... this doesn't make much sense since we can't make any assumptions
+#   about how the interpreter should behave
 # - split out built-ins from env.py
 # - if, else if
 # - implement built-in functions in Slang
@@ -43,18 +44,21 @@
 # - either support or disallow nested functions and closures
 
 from collections import deque
-from parsegen import parse
+from parsegen import parse, node
 from lexgen import lex
 import repl
 from interpreter import env, execute
 
+# Instantiate lexer
+lexer = lex.lexer()
+
 # Run the program string.
 def run(p):
-    tokens = tokenize.tokenize(p)           # Tokenize
-    # print(tokens)
-    tree = parse.parse(tokens)              # Parse
-    # parse.print_tree(tree)
-    stms = tree[1]
+    lexer.set_str(p)
+    lexer.reset()
+    tree = parse.parse(lexer)               # Parse
+    # node.print_tree(tree)
+    stms = tree.children
     envs = [env.env]                        # Create environment stack
     return execute.execute(envs, stms)      # Execute
 

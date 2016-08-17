@@ -86,7 +86,7 @@ def parse(lexer):
 
         if not act:                         # ERROR
 
-            frag = lexer.vicinity(token.start_line, 3, lexer.prog_str)
+            frag = lexer.excerpt(token.start_line, 3, lexer.prog_str)
             raise SyntaxError('line %d: unexpected token "%s".\n%s'\
                 % (token.start_line, str(token.value), frag))
 

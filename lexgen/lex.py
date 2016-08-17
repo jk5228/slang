@@ -25,22 +25,27 @@ class lexer(object):
         self.prog_file = prog_file
         self.prog_str = self.prog_file.read()
 
+    # Set the program string.
+    def set_str(self, prog_str):
+        self.prog_file = None
+        self.prog_str = prog_str
+
     # Return the next token. Raises an exception if there is no set
-    # program file.
+    # program file or program string.
     def next(self):
-        if not self.prog_file: raise Exception('no program file set.')
+        if not self.prog_file and self.prog_str == None: raise Exception('no program set.')
         if not self.tokens: self.tokens = self.lex(self.prog_str)
         return next(self.tokens)
 
     # Reset the token generator. Raises an exception if there is no set
-    # program file.
+    # program file or program string.
     def reset(self):
-        if not self.prog_file: raise Exception('no program file set.')
+        if not self.prog_file and self.prog_str == None: raise Exception('no program set.')
         self.tokens = self.lex(self.prog_str)
 
     # Return a string containing the section of up to k lines surrounding and
     # including line n, given a program string.
-    def vicinity(self, n, k, string):
+    def excerpt(self, n, k, string):
         n = n-1                     # Switch back to zero-indexing
         lines = string.split('\n')
         lo = max(n - k//2, 0)
@@ -92,4 +97,4 @@ class lexer(object):
                     linefrag = prog_str
                 print(orig_str)
                 raise SyntaxError('line %d: unexpected sequence "%s".\n%s'\
-                    % (linecount, linefrag, self.vicinity(linecount, 3, self.prog_str)))
+                    % (linecount, linefrag, self.excerpt(linecount, 3, self.prog_str)))
