@@ -57,7 +57,7 @@ def run(p):
     lexer.set_str(p)
     lexer.reset()
     tree = parse.parse(lexer)               # Parse
-    # node.print_tree(tree)
+    node.print_tree(tree)
     stms = tree.children
     envs = [env.env]                        # Create environment stack
     return execute.execute(envs, stms)      # Execute

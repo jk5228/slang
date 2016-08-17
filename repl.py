@@ -8,7 +8,9 @@ import cmd, copy
 
 class repl(cmd.Cmd):
 
-    intro = 'Slang REPL\nEnter "exit", ctrl+C, or ctrl+D to quit.\nEnter "help" for more commands.'
+    intro = ('Slang REPL\n'
+             'Enter "exit" or press ctrl+C or ctrl+D to quit.\n'
+             'Enter "help" for more commands.')
     fresh_env = copy.deepcopy(env.env)
     in_prompt = '%s%s%s' % (colors.color('In  [', colors.OKBLUE), '%s', colors.color(']: ', colors.OKBLUE))
     out_prompt = '%s%s%s%s' % (colors.color('Out [', colors.OKCYAN), '%s', colors.color(']: ', colors.OKCYAN), '%s')
@@ -22,7 +24,7 @@ class repl(cmd.Cmd):
 
     # Print an error message.
     def error(self, err):
-        print(colors.color('Error: %s', colors.FAIL) % err)
+        print(colors.color('Error: ', colors.FAIL) + str(err))
 
     # Update the in_prompt with the count number.
     def update_in_prompt(self):
