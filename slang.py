@@ -11,8 +11,8 @@
 # - Expressions with more than one term must be wrapped by parentheses.
 # - For loops work like Python for loops, iterating over an array.
 # - Built-in functions include: print, size, array.
-# - The range n..m evaluates to the numbers n to m.
-# - The range n...m evaluates to the numbers n to m-1.
+# - The range n..m evaluates to the array of numbers from n to m.
+# - The range n...m evaluates to the array of numbers from n to m-1.
 # - An array comprehension returns a new array.
 # - An array comprehension with a filter expression evaluates the filter
 #   expression and places each result into the return array.
@@ -21,9 +21,8 @@
 # - fix env stack so function calls can only see local and global envs
 
 # TODO:
-# - automatically generate execute.py template based on .syn?
-#   well... this doesn't make much sense since we can't make any assumptions
-#   about how the interpreter should behave
+# - add exponentiation operator ^
+# - add negative sign
 # - split out built-ins from env.py
 # - if, else if
 # - implement built-in functions in Slang
@@ -57,7 +56,7 @@ def run(p):
     lexer.set_str(p)
     lexer.reset()
     tree = parse.parse(lexer)               # Parse
-    node.print_tree(tree)
+    # node.print_tree(tree)
     stms = tree.children
     envs = [env.env]                        # Create environment stack
     return execute.execute(envs, stms)      # Execute

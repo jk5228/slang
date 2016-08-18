@@ -50,8 +50,8 @@ class lexer(object):
         lines = string.split('\n')
         lo = max(n - k//2, 0)
         hi = min(n + k//2, len(lines)-1)
-        # print(lo)
-        # print(hi)
+        print(lo)
+        print(hi)
         width = len(str(hi))
         res = []
         for (i, line) in enumerate(lines[lo:hi+1]):

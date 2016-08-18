@@ -208,21 +208,30 @@ def evaluate(envs, exp):
         # print(ind)
         arr = unwrap(evaluate(envs, terms[1]))
         # print(arr)
-        cond = terms[2]
-        # print(cond)
-        filter_exp = None
-        if len(terms) == 4:
-            filter_exp = terms[3]
 
         if type(arr) != list:
             raise TypeError('cannot index into type %s.' % type(arr))
+
+        filter_exp = None
+        cond = None
+        sep = terms[2]
+
+        if match(sep, ':'):
+            cond = terms[3]
+            if len(terms) > 4:
+                filter_exp = terms[5]
+        else:
+            filter_exp = terms[3]
+
+        # print(cond)
+        # print(filter_exp)
 
         res_arr = []
         envs.append({})
 
         for val in arr:
             envs[-1][ind] = val
-            if unwrap(evaluate(envs, cond)):
+            if not cond or unwrap(evaluate(envs, cond)):
                 if filter_exp:
                     val = evaluate(envs, filter_exp)
                 res_arr.append(val)

@@ -77,7 +77,7 @@ class repl(cmd.Cmd):
 
     def do_del(self, fpath):
         ('Remove every instance of the specified script from the exec list. '
-         'If not path is specified, remove the last script added, if any.')
+         'If no path is specified, remove the last script added, if any.')
         if not fpath and self.exec_list:
             script = self.exec_list.pop()
             print('Script "%s" deleted from exec list.\n' % fpath)

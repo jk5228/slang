@@ -2,7 +2,7 @@
 
 # Production rules
 
-: num str id .. ... + - * / % ! && || == <= >= < > break
+: num str id .. ... : -> + - * / % ! && || == <= >= < > break
 
 %left !
 %left * / %
@@ -55,6 +55,7 @@ arrExp   : { expLst }
 rngExp   : exp .. exp
          | exp ... exp
 arrComp  : { id in exp : exp }
+         | { id in exp -> exp }
          | { id in exp : exp -> exp }
 expLst   : exp*
 exp*     < EMPTY
