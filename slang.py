@@ -21,7 +21,6 @@
 # - fix env stack so function calls can only see local and global envs
 
 # TODO:
-# - add exponentiation operator ^
 # - add negative sign
 # - split out built-ins from env.py
 # - if, else if

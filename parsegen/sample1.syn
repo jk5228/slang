@@ -1,3 +1,5 @@
+# Syntax to test precedence.
+
 : num
 
 %left !

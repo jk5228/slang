@@ -5,7 +5,7 @@ import re
 from . import tok
 
 ws = re.compile('\s+')
-triples = [('}', '=', re.compile(re.escape('}'))),('||', '=', re.compile(re.escape('||'))),('{', '=', re.compile(re.escape('{'))),('while', '=', re.compile(re.escape('while'))),('return', '=', re.compile(re.escape('return'))),('in', '=', re.compile(re.escape('in'))),('if', '=', re.compile(re.escape('if'))),('for', '=', re.compile(re.escape('for'))),('else', '=', re.compile(re.escape('else'))),('def', '=', re.compile(re.escape('def'))),('break', '=', re.compile(re.escape('break'))),(']', '=', re.compile(re.escape(']'))),('[', '=', re.compile(re.escape('['))),('>=', '=', re.compile(re.escape('>='))),('>', '=', re.compile(re.escape('>'))),('==', '=', re.compile(re.escape('=='))),('=', '=', re.compile(re.escape('='))),('<=', '=', re.compile(re.escape('<='))),('<', '=', re.compile(re.escape('<'))),(';', '=', re.compile(re.escape(';'))),(':', '=', re.compile(re.escape(':'))),('/', '=', re.compile(re.escape('/'))),('...', '=', re.compile(re.escape('...'))),('..', '=', re.compile(re.escape('..'))),('->', '=', re.compile(re.escape('->'))),('-', '=', re.compile(re.escape('-'))),(',', '=', re.compile(re.escape(','))),('+', '=', re.compile(re.escape('+'))),('*', '=', re.compile(re.escape('*'))),(')', '=', re.compile(re.escape(')'))),('(', '=', re.compile(re.escape('('))),('&&', '=', re.compile(re.escape('&&'))),('%', '=', re.compile(re.escape('%'))),('!', '=', re.compile(re.escape('!'))),('num', ':', re.compile('\d+', re.DOTALL|re.MULTILINE)),('str', ':', re.compile('"(?P<val>[^"]*)"', re.DOTALL|re.MULTILINE)),('id', ':', re.compile('[A-Za-z_][A-Za-z0-9_]*', re.DOTALL|re.MULTILINE)),('ws', '<', re.compile('(\s|\n)+', re.DOTALL|re.MULTILINE)),('com', '<', re.compile('#[^\n]*', re.DOTALL|re.MULTILINE))]
+triples = [('}', '=', re.compile(re.escape('}'))),('||', '=', re.compile(re.escape('||'))),('{', '=', re.compile(re.escape('{'))),('while', '=', re.compile(re.escape('while'))),('return', '=', re.compile(re.escape('return'))),('in', '=', re.compile(re.escape('in'))),('if', '=', re.compile(re.escape('if'))),('for', '=', re.compile(re.escape('for'))),('else', '=', re.compile(re.escape('else'))),('def', '=', re.compile(re.escape('def'))),('break', '=', re.compile(re.escape('break'))),('^', '=', re.compile(re.escape('^'))),(']', '=', re.compile(re.escape(']'))),('[', '=', re.compile(re.escape('['))),('>=', '=', re.compile(re.escape('>='))),('>', '=', re.compile(re.escape('>'))),('==', '=', re.compile(re.escape('=='))),('=', '=', re.compile(re.escape('='))),('<=', '=', re.compile(re.escape('<='))),('<', '=', re.compile(re.escape('<'))),(';', '=', re.compile(re.escape(';'))),(':', '=', re.compile(re.escape(':'))),('/', '=', re.compile(re.escape('/'))),('...', '=', re.compile(re.escape('...'))),('..', '=', re.compile(re.escape('..'))),('->', '=', re.compile(re.escape('->'))),('-', '=', re.compile(re.escape('-'))),(',', '=', re.compile(re.escape(','))),('+', '=', re.compile(re.escape('+'))),('*', '=', re.compile(re.escape('*'))),(')', '=', re.compile(re.escape(')'))),('(', '=', re.compile(re.escape('('))),('&&', '=', re.compile(re.escape('&&'))),('%', '=', re.compile(re.escape('%'))),('!', '=', re.compile(re.escape('!'))),('num', ':', re.compile('\d+', re.DOTALL|re.MULTILINE)),('str', ':', re.compile('"(?P<val>[^"]*)"', re.DOTALL|re.MULTILINE)),('id', ':', re.compile('[A-Za-z_][A-Za-z0-9_]*', re.DOTALL|re.MULTILINE)),('ws', '<', re.compile('(\s|\n)+', re.DOTALL|re.MULTILINE)),('com', '<', re.compile('#[^\n]*', re.DOTALL|re.MULTILINE))]
 
 
 # Return the number of newlines in the match object.
@@ -50,8 +50,8 @@ class lexer(object):
         lines = string.split('\n')
         lo = max(n - k//2, 0)
         hi = min(n + k//2, len(lines)-1)
-        print(lo)
-        print(hi)
+        # print(lo)
+        # print(hi)
         width = len(str(hi))
         res = []
         for (i, line) in enumerate(lines[lo:hi+1]):
@@ -95,6 +95,6 @@ class lexer(object):
                     linefrag = prog_str[:prog_str.index('\n')]
                 except ValueError:
                     linefrag = prog_str
-                print(orig_str)
+                # print(orig_str)
                 raise SyntaxError('line %d: unexpected sequence "%s".\n%s'\
                     % (linecount, linefrag, self.excerpt(linecount, 3, self.prog_str)))

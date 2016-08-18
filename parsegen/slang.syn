@@ -2,8 +2,9 @@
 
 # Production rules
 
-: num str id .. ... : -> + - * / % ! && || == <= >= < > break
+: num str id .. ... : -> + - * / % ^ ! && || == <= >= < > break
 
+%right ^
 %left !
 %left * / %
 %left + -
@@ -68,6 +69,7 @@ arithExp : exp + exp
          | exp * exp
          | exp / exp
          | exp % exp
+         | exp ^ exp
 logExp   : ! exp
          | exp && exp
          | exp || exp

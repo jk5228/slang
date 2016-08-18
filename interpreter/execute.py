@@ -280,12 +280,19 @@ def evaluate(envs, exp):
                 return number(unwrap(left) * unwrap(right))
             else:
                 raise TypeError('cannot perform operation %s * %s' % (type(left), type(right)))
-        else:                               # Modulo
+        elif match(op, '%'):                # Modulo
             # print('-> %')
             if type(left) == number and type(right) == number:
                 return number(unwrap(left) % unwrap(right))
             else:
                 raise TypeError('cannot perform operation %s %% %s' % (type(left), type(right)))
+        else:                               # Exponentiate
+            # print('-> ^')
+            if type(left) == number and type(right) == number:
+                return number(unwrap(left) ** unwrap(right))
+            else:
+                raise TypeError('cannot perform operation %s ^ %s' % (type(left), type(right)))
+            
     else:                                   # Logical expression
         # print('-> logExp')
         terms = subs(exp)
@@ -351,16 +358,16 @@ def execute_stms(envs, incall, inloop, stms):
     for stm in stms:
         if match(stm, 'line'):              # Line
             stm = sub(stm)
+            if match(stm, 'break'):         # Break
+                # print('-> break')
+                if not inloop:          raise SyntaxError('cannot break outside of a loop.')
+                else:                   return result.brk(number(0))
             terms = subs(stm)
             if match(stm, 'retStm'):        # Return
                 # print('-> retStm')
                 if not incall:          raise SyntaxError('cannot return outside of a function call.')
-                elif len(terms) > 1:    return result.ret(evaluate(envs, terms[1]))
+                elif len(terms) > 0:    return result.ret(evaluate(envs, terms[0]))
                 else:                   return result.ret(number(0))
-            elif match(stm, 'break'):       # Break
-                # print('-> break')
-                if not inloop:          raise SyntaxError('cannot break outside of a loop.')
-                else:                   return result.brk(number(0))
             elif match(stm, 'exp'):         # Expression
                 # print('-> exp')
                 res = evaluate(envs, stm)

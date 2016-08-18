@@ -50,8 +50,8 @@ class lexer(object):
         lines = string.split('\n')
         lo = max(n - k//2, 0)
         hi = min(n + k//2, len(lines)-1)
-        print(lo)
-        print(hi)
+        # print(lo)
+        # print(hi)
         width = len(str(hi))
         res = []
         for (i, line) in enumerate(lines[lo:hi+1]):
@@ -95,6 +95,6 @@ class lexer(object):
                     linefrag = prog_str[:prog_str.index('\n')]
                 except ValueError:
                     linefrag = prog_str
-                print(orig_str)
+                # print(orig_str)
                 raise SyntaxError('line %d: unexpected sequence "%s".\n%s'\
                     % (linecount, linefrag, self.excerpt(linecount, 3, self.prog_str)))

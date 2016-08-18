@@ -28,7 +28,7 @@ def usable(dump_table):
     return table
 
 end_sym = 'END_SYM'
-tlist = ['num', 'str', 'id', '..', '...', ':', '->', '+', '-', '*', '/', '%', '!', '&&', '||', '==', '<=', '>=', '<', '>', 'break']
+tlist = ['num', 'str', 'id', '..', '...', ':', '->', '+', '-', '*', '/', '%', '^', '!', '&&', '||', '==', '<=', '>=', '<', '>', 'break']
 clist = ['stm*', 'stm', 'id*', 'exp*']
 table = usable(pickle.load(open(path.dirname(__file__)+'/parse_table.dump', 'rb')))
 
@@ -60,6 +60,7 @@ def parse(lexer):
 
     state_stk = [0]
     stack = []
+    prev = None
     token = None
     act = None
 
@@ -86,9 +87,17 @@ def parse(lexer):
 
         if not act:                         # ERROR
 
+            val = None
+
+            if type(token) == str:
+                token = prev
+                val = 'EOF'
+            else:
+                val = token.value
+
             frag = lexer.excerpt(token.start_line, 3, lexer.prog_str)
             raise SyntaxError('line %d: unexpected token "%s".\n%s'\
-                % (token.start_line, str(token.value), frag))
+                % (token.start_line, val, frag))
 
         elif type(act) == action.SHIFT:     # SHIFT
 
@@ -97,6 +106,7 @@ def parse(lexer):
             # print('t.value: %s' % t.value)
             stack.append(t)
             state_stk.append(act.state_num)
+            prev = token
             token = None
 
         elif type(act) == action.REDUCE:    # REDUCE
