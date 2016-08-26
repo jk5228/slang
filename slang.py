@@ -18,6 +18,7 @@
 #   expression and places each result into the return array.
 
 # BUGS:
+# - variable names that have keywords as prefixes aren't tokenized correctly
 # - fix env stack so function calls can only see local and global envs
 
 # TODO:

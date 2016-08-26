@@ -28,7 +28,7 @@ def usable(dump_table):
     return table
 
 end_sym = 'END_SYM'
-tlist = ['num', 'str', 'id', '..', '...', ':', '->', '+', '-', '*', '/', '%', '^', '!', '&&', '||', '==', '<=', '>=', '<', '>', 'break']
+tlist = ['num', 'str', 'id', '..', '...', ':', '->', '+', '-', '*', '/', '%', '^', '!', '&&', '||', '==', '!=', '<=', '>=', '<', '>', 'break']
 clist = ['stm*', 'stm', 'id*', 'exp*']
 table = usable(pickle.load(open(path.dirname(__file__)+'/parse_table.dump', 'rb')))
 

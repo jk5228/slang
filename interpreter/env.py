@@ -4,6 +4,7 @@
 
 from . import execute
 from collections import OrderedDict
+from random import random
 
 # Built-in functions
 
@@ -20,10 +21,20 @@ def s_size(arr):
 def s_array(n):
     return execute.array([0 for i in range(n)])
 
+# Return a random number between 0 and 1.
+def s_random():
+    return execute.number(random())
+
+# Return the floor(n).
+def s_floor(n):
+    return execute.number(int(n))
+
 # The global environment
 
 env = OrderedDict({
     'print': execute.built_in_func(s_print),
     'size': execute.built_in_func(s_size),
-    'array': execute.built_in_func(s_array)
+    'array': execute.built_in_func(s_array),
+    'random': execute.built_in_func(s_random),
+    'floor': execute.built_in_func(s_floor)
 })

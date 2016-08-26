@@ -311,6 +311,9 @@ def evaluate(envs, exp):
             elif match(op, '=='):           # Equals
                 # print('-> ==')
                 return number(unwrap(left) == unwrap(right))
+            elif match(op, '!='):           # Not equal to
+                # print('-> !=')
+                return number(unwrap(left) != unwrap(right))
             elif match(op, '<='):           # Less than or equal to
                 # print('-> <=')
                 return number(unwrap(left) <= unwrap(right))
