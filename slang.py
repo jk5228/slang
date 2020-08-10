@@ -8,7 +8,6 @@
 # - Comments run from # to the end of the line.
 # - Only 0, "", and [] are falsy.
 # - Functions without a return value return the value of the last statement.
-# - Expressions with more than one term must be wrapped by parentheses.
 # - For loops work like Python for loops, iterating over an array.
 # - Built-in functions include: print, size, array.
 # - The range n..m evaluates to the array of numbers from n to m.
